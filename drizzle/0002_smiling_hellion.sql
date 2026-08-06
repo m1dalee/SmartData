@@ -1,0 +1,1 @@
+ALTER TABLE `savings_goals` ADD `starting_amount` real DEFAULT 0 NOT NULL;

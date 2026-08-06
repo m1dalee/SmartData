@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1785961341074,
+      "tag": "0000_sudden_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785964365309,
+      "tag": "0001_yielding_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785967131656,
+      "tag": "0002_smiling_hellion",
+      "breakpoints": true
+    }
+  ]
+}
