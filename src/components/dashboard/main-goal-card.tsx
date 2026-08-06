@@ -52,44 +52,44 @@ export function MainGoalCard({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
-      <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-400/10 blur-2xl" />
+    <article className="animate-fade-up stagger-6 relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
+      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-money-in/10 blur-2xl" />
 
       <div className="relative space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-money-in text-white shadow-sm">
               <Target className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-emerald-800">Objectif épargne</p>
-              <h2 className="text-xl font-bold tracking-tight">30 000 €</h2>
+              <p className="text-sm font-medium text-muted-foreground">Objectif épargne</p>
+              <h2 className="text-xl font-extrabold tracking-tight">30 000 €</h2>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-emerald-700">{clampedProgress.toFixed(1)} %</p>
+            <p className="text-3xl font-extrabold text-money-in">{clampedProgress.toFixed(1)} %</p>
             <p className="text-xs text-muted-foreground">Sync auto</p>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Progress value={clampedProgress} className="h-4 bg-emerald-100 [&>div]:bg-emerald-600" />
+          <Progress value={clampedProgress} className="h-3 bg-muted [&>div]:bg-money-in" />
           <div className="flex justify-between text-sm">
-            <span className="font-semibold text-emerald-700">{formatCurrency(displayAmount)} épargnés</span>
+            <span className="font-semibold text-money-in">{formatCurrency(displayAmount)} épargnés</span>
             <span className="text-muted-foreground">Objectif {formatCurrency(targetAmount)}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg bg-white/80 p-3 border">
+          <div className="rounded-xl bg-muted/70 p-3">
             <p className="text-xs text-muted-foreground">Épargne ce mois</p>
-            <p className={`font-bold ${monthlySavings >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            <p className={`font-bold ${monthlySavings >= 0 ? "text-money-in" : "text-money-out"}`}>
               {formatCurrency(monthlySavings)}
             </p>
           </div>
-          <div className="rounded-lg bg-white/80 p-3 border">
+          <div className="rounded-xl bg-muted/70 p-3">
             <p className="text-xs text-muted-foreground">Depuis vos imports</p>
-            <p className={`font-bold ${periodSavings >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            <p className={`font-bold ${periodSavings >= 0 ? "text-money-in" : "text-money-out"}`}>
               {formatCurrency(periodSavings)}
             </p>
           </div>
@@ -100,15 +100,15 @@ export function MainGoalCard({
             Plus que <strong className="text-foreground">{formatCurrency(remaining)}</strong> pour les 30K
           </p>
         ) : (
-          <p className="text-sm font-semibold text-emerald-700">Objectif 30 000 € atteint !</p>
+          <p className="text-sm font-semibold text-money-in">Objectif 30 000 € atteint !</p>
         )}
 
-        <div className="rounded-lg border bg-white/60 p-3 space-y-2">
+        <div className="space-y-2 rounded-xl border border-border/80 bg-background/60 p-3">
           {needsSetup && !editing && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <p>
                 Vous épargnez <strong>{formatCurrency(monthlySavings)}</strong> ce mois, mais l&apos;objectif
-                30K suit votre <strong>épargne totale</strong> (livret, compte épargne…), pas seulement ce mois.
+                30K suit votre <strong>épargne totale</strong>.
               </p>
               <Button
                 variant="outline"
@@ -154,6 +154,6 @@ export function MainGoalCard({
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

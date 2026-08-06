@@ -103,7 +103,7 @@ export function TransactionsExplorer({
               onClick={() => setGroupMode("date")}
               className={cn(
                 "rounded-lg border px-3 py-2 text-sm",
-                groupMode === "date" && "border-indigo-500 bg-indigo-500/10 text-indigo-700",
+                groupMode === "date" && "border-brand bg-brand/10 text-brand",
               )}
             >
               Par mois
@@ -113,7 +113,7 @@ export function TransactionsExplorer({
               onClick={() => setGroupMode("category")}
               className={cn(
                 "rounded-lg border px-3 py-2 text-sm",
-                groupMode === "category" && "border-indigo-500 bg-indigo-500/10 text-indigo-700",
+                groupMode === "category" && "border-brand bg-brand/10 text-brand",
               )}
             >
               Par catégorie
@@ -130,7 +130,7 @@ export function TransactionsExplorer({
             }}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              categoryFilter === "all" && !showUncategorized && "border-indigo-500 bg-indigo-500 text-white",
+              categoryFilter === "all" && !showUncategorized && "border-brand bg-brand text-brand-foreground",
             )}
           >
             Tous ({rows.length})

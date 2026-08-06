@@ -31,7 +31,7 @@ export function CategoryBars({ data, totalExpenses }: { data: CategoryBreakdown[
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span className="font-medium group-hover:text-indigo-700">{cat.categoryName}</span>
+                  <span className="font-medium group-hover:text-brand">{cat.categoryName}</span>
                   <span className="text-muted-foreground">({cat.count})</span>
                 </div>
                 <div className="flex items-center gap-1 text-right">
@@ -45,7 +45,7 @@ export function CategoryBars({ data, totalExpenses }: { data: CategoryBreakdown[
           ))
         )}
         {data.length > 0 && (
-          <Link href="/transactions" className="block pt-2 text-center text-sm text-indigo-600 hover:underline">
+          <Link href="/transactions" className="block pt-2 text-center text-sm font-semibold text-brand hover:underline">
             Gérer tous les paiements →
           </Link>
         )}
