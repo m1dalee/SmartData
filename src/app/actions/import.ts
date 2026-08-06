@@ -2,22 +2,31 @@
 
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getDb } from "@/lib/db";
+import { checkpointDatabase, getDb } from "@/lib/db";
 import { categories, categoryRules, transactions } from "@/lib/db/schema";
 import { guessCategory } from "@/lib/import/category-matcher";
 import { decodeBankFile, parseBankCsv } from "@/lib/import/csv-parser";
 
-function buildImportMessage(imported: number, skipped: number, total: number): string {
+function buildImportMessage(imported: number, skipped: number, total: number, replaced: boolean): string {
   if (imported === 0 && skipped > 0) {
-    return `Toutes les ${skipped} transactions sont déjà importées.\nConsultez le Tableau de bord ou Transactions.\nSi les données semblent incorrectes, supprimez les imports et réessayez.`;
+    return `Toutes les ${skipped} transactions sont déjà en base.\nRien n'a été modifié — vos données restent enregistrées.`;
   }
   if (imported > 0 && skipped === 0) {
-    return `${imported} transaction(s) importée(s) avec succès.`;
+    return replaced
+      ? `${imported} transaction(s) enregistrée(s). L'ancien import a été remplacé.\nElles restent en base jusqu'au prochain CSV.`
+      : `${imported} transaction(s) ajoutée(s) en base.\nElles restent enregistrées jusqu'au prochain remplacement.`;
   }
   if (imported > 0 && skipped > 0) {
-    return `${imported} transaction(s) importée(s), ${skipped} déjà présente(s) (ignorées).`;
+    return `${imported} transaction(s) ajoutée(s), ${skipped} déjà présente(s) (ignorées).`;
   }
   return `Aucune nouvelle transaction sur ${total} ligne(s) analysée(s).`;
+}
+
+function revalidateImportPaths() {
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  revalidatePath("/import");
+  revalidatePath("/budgets");
 }
 
 export async function getImportStats() {
@@ -32,14 +41,12 @@ export async function getImportStats() {
 export async function clearImportedTransactions() {
   const db = getDb();
   const deleted = await db.delete(transactions).where(eq(transactions.source, "import"));
-
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/import");
+  checkpointDatabase();
+  revalidateImportPaths();
 
   return {
     success: true,
-    message: "Transactions bancaires importées supprimées. Vous pouvez réimporter votre CSV.",
+    message: "Imports bancaires supprimés. La base est vide — importez un nouveau CSV pour recommencer.",
     deletedCount: deleted.changes ?? 0,
   };
 }
@@ -50,7 +57,10 @@ export async function importBankCsv(formData: FormData) {
     return { success: false, imported: 0, skipped: 0, message: "Aucun fichier sélectionné." };
   }
 
-  const replaceExisting = formData.get("replaceExisting") === "on";
+  // Default: replace previous bank import (CSV stays until the next update).
+  // Opt-in append via keepExisting.
+  const keepExisting = formData.get("keepExisting") === "on";
+  const replaceExisting = !keepExisting;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const content = decodeBankFile(buffer);
@@ -114,15 +124,15 @@ export async function importBankCsv(formData: FormData) {
     imported++;
   }
 
-  revalidatePath("/");
-  revalidatePath("/transactions");
-  revalidatePath("/import");
+  checkpointDatabase();
+  revalidateImportPaths();
 
   return {
     success: true,
     imported,
     skipped,
+    replaced: replaceExisting && imported > 0,
     alreadyImported: imported === 0 && skipped > 0,
-    message: buildImportMessage(imported, skipped, parsed.length),
+    message: buildImportMessage(imported, skipped, parsed.length, replaceExisting && imported > 0),
   };
 }

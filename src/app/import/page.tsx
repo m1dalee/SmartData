@@ -13,7 +13,8 @@ export default async function ImportPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Import banque</h1>
           <p className="text-muted-foreground">
-            Récupérez vos données bancaires via l&apos;export CSV de votre espace client
+            Importez un CSV : il reste en base jusqu&apos;au prochain fichier (qui remplace
+            l&apos;ancien)
           </p>
         </div>
 
