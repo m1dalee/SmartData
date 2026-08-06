@@ -62,7 +62,7 @@ export function RecentActivity({
       </div>
 
       <div className="mt-4 text-center">
-        <Link href="/transactions" className="text-sm text-indigo-600 hover:underline">
+        <Link href="/transactions" className="text-sm font-semibold text-brand hover:underline">
           Voir tous les paiements →
         </Link>
       </div>

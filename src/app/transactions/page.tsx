@@ -1,4 +1,4 @@
-import { AppNav } from "@/components/app-nav";
+import { AppShell } from "@/components/app-shell";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { TransactionsExplorer } from "@/components/transactions/transactions-explorer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,29 +19,24 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   const unknownCount = await getUnknownPaymentCount();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50/30 to-background">
-      <AppNav currentPath="/transactions" />
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Paiements</h1>
-            <p className="text-muted-foreground">
-              Cliquez sur un paiement pour le catégoriser · {rows.length} opérations
-            </p>
-          </div>
-          {uncategorizedCount > 0 && (
-            <Link
-              href="/transactions?uncategorized=1"
-              className="inline-flex items-center rounded-lg bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-500/25"
-            >
-              {uncategorizedCount} à classer →
-            </Link>
-          )}
-        </div>
-
+    <AppShell
+      title="Mes paiements"
+      subtitle={`${rows.length} opérations · cliquez pour catégoriser`}
+      action={
+        uncategorizedCount > 0 ? (
+          <Link
+            href="/transactions?uncategorized=1"
+            className="inline-flex items-center rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold text-brand-foreground backdrop-blur-sm transition hover:bg-white/25"
+          >
+            {uncategorizedCount} à classer
+          </Link>
+        ) : undefined
+      }
+    >
+      <div className="mx-auto max-w-4xl space-y-4">
         {unknownCount > 0 && <AutoIdentifyButton unknownCount={unknownCount} />}
 
-        <Card>
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle className="text-base">Ajouter manuellement</CardTitle>
           </CardHeader>
@@ -50,7 +45,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle>Tous vos paiements</CardTitle>
           </CardHeader>
@@ -65,7 +60,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
             />
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

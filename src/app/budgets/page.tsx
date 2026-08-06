@@ -1,4 +1,4 @@
-import { AppNav } from "@/components/app-nav";
+import { AppShell } from "@/components/app-shell";
 import { BudgetForm, SavingsGoalsSection } from "@/components/budgets/savings-goals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCategories } from "@/app/actions/transactions";
@@ -9,15 +9,9 @@ export default async function BudgetsPage() {
   const goals = await getSavingsGoals();
 
   return (
-    <div className="min-h-screen">
-      <AppNav currentPath="/budgets" />
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Budgets & épargne</h1>
-          <p className="text-muted-foreground">Planifiez vos dépenses et suivez vos objectifs</p>
-        </div>
-
-        <Card>
+    <AppShell title="Budgets & épargne" subtitle="Planifiez vos dépenses et suivez vos objectifs">
+      <div className="mx-auto max-w-6xl space-y-4">
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle>Budget mensuel par catégorie</CardTitle>
           </CardHeader>
@@ -26,7 +20,7 @@ export default async function BudgetsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle>Objectifs d&apos;épargne</CardTitle>
           </CardHeader>
@@ -34,7 +28,7 @@ export default async function BudgetsPage() {
             <SavingsGoalsSection goals={goals} />
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }
