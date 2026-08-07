@@ -1,6 +1,7 @@
 import { chromium, type BrowserContext } from "playwright";
 import configJson from "../config.json" with { type: "json" };
 import { openDb, persistListings } from "./db.js";
+import { loadEnv } from "./env.js";
 import { assignSearch, matchesSearch } from "./filter.js";
 import { deliverReport } from "./notify.js";
 import { fetchAutoScout24 } from "./sites/autoscout24.js";
@@ -10,6 +11,8 @@ import { fetchMobileDe } from "./sites/mobilede.js";
 import type { AppConfig, RawListing, SiteId } from "./types.js";
 
 const config = configJson as AppConfig;
+
+loadEnv();
 
 async function openBrowserContext(): Promise<{
   context: BrowserContext;
