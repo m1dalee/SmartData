@@ -1,0 +1,21 @@
+{
+  "name": "car-hunter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "hunt": "tsx src/index.ts",
+    "install-browser": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.20.5",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
