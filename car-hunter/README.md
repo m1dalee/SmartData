@@ -1,10 +1,52 @@
 # Car Hunter
 
-Alertes auto sur mobile pour **BMW M140i** (≤ 30 000 €) et **BMW M4 F82** (≤ 40 000 €, sans cabrio / F83).
+Alertes **Telegram** pour BMW **M140i** (≤ 30 000 €) et **M4 F82** (≤ 40 000 €, sans cabrio / F83).
 
-Tu reçois un **message bien formaté** sur ton téléphone — pas de rapport HTML à ouvrir.
+Tourne **automatiquement sur GitHub** — rien à installer sur ton PC.
 
-## Ce que tu reçois (exemple Telegram)
+## Déploiement GitHub (5 min)
+
+### 1. Créer le repo
+
+Sur [github.com/new](https://github.com/new) :
+- Nom : `car-hunter`
+- Public ou privé
+- **Sans** README / .gitignore (déjà inclus ici)
+
+### 2. Pousser ce code
+
+```bash
+cd car-hunter
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/TON_USER/car-hunter.git
+git push -u origin main
+```
+
+### 3. Ajouter les secrets Telegram
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+
+| Secret | Valeur |
+|--------|--------|
+| `TELEGRAM_BOT_TOKEN` | ton token BotFather |
+| `TELEGRAM_CHAT_ID` | `5252735871` |
+
+### 4. Tester
+
+Actions → **Car Hunter** → **Run workflow**
+
+Tu reçois le message sur Telegram en ~1 min.
+
+## Planification
+
+Automatique **2×/jour** (8h et 20h, Paris) via GitHub Actions.
+
+Lancement manuel : onglet **Actions** → **Run workflow**.
+
+## Message reçu (exemple)
 
 ```
 🚗 Car Hunter
@@ -13,92 +55,41 @@ Tu reçois un **message bien formaté** sur ton téléphone — pas de rapport H
 ✨ 2 nouvelles annonces
 
 ━━ BMW M140i (1) ━━
-
 🆕 BMW Série 1 M140i
-💰 27 500 € · 📍 Bruxelles, BE
-🛣 62 000 km · 📅 2018
-🏷 AutoScout24
+💰 27 500 € · 📍 Lyon, FR
 👉 Voir l'annonce
-
-━━ BMW M4 F82 (1) ━━
-...
 ```
 
 Seules les **nouvelles** annonces sont marquées 🆕.
 
-## Installation
-
-```bash
-cd car-hunter
-npm install
-npm run install-browser
-cp .env.example .env
-```
-
-## Option 1 — Telegram (recommandé sur mobile)
-
-1. Parle à [@BotFather](https://t.me/BotFather) → `/newbot` → récupère le **token**
-2. Envoie un message à ton bot
-3. Récupère ton **chat_id** :
-   `https://api.telegram.org/bot<TOKEN>/getUpdates`
-4. Remplis `.env` :
-
-```env
-TELEGRAM_BOT_TOKEN=123456:ABC...
-TELEGRAM_CHAT_ID=987654321
-```
-
-5. Lance :
-
-```bash
-npm run hunt
-```
-
-Le message arrive directement dans Telegram.
-
-## Option 2 — ntfy (encore plus simple)
-
-1. Installe [ntfy](https://ntfy.sh) sur ton téléphone
-2. Abonne-toi à un topic perso (ex. `bmw-hunt-guillaume-xyz`)
-3. Dans `.env` :
-
-```env
-NTFY_TOPIC=bmw-hunt-guillaume-xyz
-```
-
-Tu peux activer **Telegram + ntfy** en même temps.
-
-## Planification (matin + soir)
-
-Cron Linux / cloud :
-
-```cron
-0 8 * * * cd /workspace/car-hunter && npm run hunt
-0 20 * * * cd /workspace/car-hunter && npm run hunt
-```
-
-Sur Windows : Planificateur de tâches → 8h et 20h → `npm run hunt`.
-
 ## Sites surveillés
 
-| Site | Source |
-|------|--------|
+| Site | GitHub Actions |
+|------|----------------|
 | AutoScout24 FR + DE | ✅ fiable |
-| leboncoin | Playwright (captcha possible) |
-| La Centrale | Playwright (captcha possible) |
-| mobile.de | Playwright (captcha possible) |
+| leboncoin | ⚠️ captcha fréquent |
+| La Centrale | ⚠️ captcha fréquent |
+| mobile.de | ⚠️ captcha fréquent |
 
-Si leboncoin / La Centrale / mobile.de bloquent, lance une fois avec un profil navigateur :
+Sur GitHub, AutoScout24 couvre déjà pas mal d’annonces FR/DE. Les 3 autres peuvent renvoyer 0 selon les protections anti-bot.
 
-```bash
-BROWSER_PROFILE_DIR=./data/browser-profile npm run hunt
-```
-
-Valide les captchas si demandé ; les runs suivants réutiliseront la session.
-
-## Critères (config.json)
+## Critères (`config.json`)
 
 - M140i ≤ 30 000 €
 - M4 F82 ≤ 40 000 €
-- Exclus : cabriolet, cabrio, convertible, F83
+- Exclus : cabriolet, cabrio, convertible, F83, X3…
 - Pas de limite zone / km
+
+## Test local (optionnel)
+
+```bash
+cp .env.example .env
+# remplir TELEGRAM_*
+npm install
+npm run install-browser
+npm run hunt
+```
+
+## Sécurité
+
+Ne commite **jamais** le token Telegram. Utilise uniquement les **GitHub Secrets**.
