@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!car-hunter/.env.example
 
 # vercel
 .vercel
@@ -42,3 +44,8 @@ next-env.d.ts
 
 # local database
 /data/
+
+# car-hunter local data
+/car-hunter/node_modules/
+/car-hunter/data/
+/car-hunter/reports/
