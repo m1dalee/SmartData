@@ -170,12 +170,12 @@ export function TransactionSheet({ row, categories, open, onOpenChange }: Props)
           <div
             className={`space-y-3 rounded-xl border-2 p-4 transition-colors ${
               applyToAll && canApplyToAll
-                ? "border-indigo-300 bg-indigo-50/80"
+                ? "border-brand/40 bg-brand/5"
                 : "border-border bg-muted/40"
             }`}
           >
             <div className="flex items-center gap-2">
-              <Tags className="h-4 w-4 text-indigo-600" />
+              <Tags className="h-4 w-4 text-brand" />
               <Label htmlFor="keyword" className="text-base font-semibold">
                 Mot-clé
               </Label>
@@ -202,7 +202,7 @@ export function TransactionSheet({ row, categories, open, onOpenChange }: Props)
                 type="checkbox"
                 checked={applyToAll}
                 onChange={(e) => setApplyToAll(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-indigo-400 accent-indigo-600"
+                className="mt-0.5 h-4 w-4 rounded border-brand/50 accent-[var(--brand)]"
               />
               <div>
                 <p className="text-sm font-semibold">Appliquer à tous les paiements avec ce mot-clé</p>

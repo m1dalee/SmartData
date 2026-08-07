@@ -10,6 +10,7 @@ const dataDir = path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "smartdata.db");
 
 let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let sqliteInstance: Database.Database | null = null;
 
 const defaultCategories = [
   { name: "Alimentation", icon: "shopping-cart", color: "#f97316", type: "expense" as const },
@@ -81,6 +82,8 @@ function ensureDatabase() {
 
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("synchronous = NORMAL");
+  sqliteInstance = sqlite;
 
   const db = drizzle(sqlite, { schema });
   runMigrations(sqlite, db);
@@ -115,4 +118,10 @@ export function getDb() {
     dbInstance = ensureDatabase();
   }
   return dbInstance;
+}
+
+/** Flush WAL into the main DB file so imports survive process restarts. */
+export function checkpointDatabase() {
+  getDb();
+  sqliteInstance?.pragma("wal_checkpoint(TRUNCATE)");
 }

@@ -17,17 +17,22 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
 
   return (
     <div className="space-y-6">
-      {importedCount > 0 && (
-        <p className="rounded-md border bg-muted/50 px-4 py-3 text-sm">
-          <strong>{importedCount}</strong> transaction(s) bancaire(s) déjà en base.
-          {importedCount > 0 && (
-            <>
-              {" "}
-              <Link href="/transactions" className="underline">
-                Voir l&apos;historique
-              </Link>
-            </>
-          )}
+      {importedCount > 0 ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+          <p>
+            <strong>{importedCount}</strong> transaction(s) bancaire(s) enregistrée(s) en base.
+          </p>
+          <p className="mt-1 text-emerald-900/80">
+            Elles restent disponibles jusqu&apos;à ce que vous importiez un nouveau CSV (qui remplacera
+            l&apos;ancien).
+          </p>
+          <Link href="/transactions" className="mt-2 inline-block font-medium underline">
+            Voir l&apos;historique
+          </Link>
+        </div>
+      ) : (
+        <p className="rounded-md border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          Aucun import en base pour l&apos;instant. Importez un CSV pour remplir le tableau de bord.
         </p>
       )}
 
@@ -54,18 +59,28 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
           <Label htmlFor="file">Fichier CSV exporté par votre banque</Label>
           <Input id="file" name="file" type="file" accept=".csv,text/csv" required />
           <p className="text-sm text-muted-foreground">
-            Compatible avec la plupart des banques françaises. Format attendu : date, libellé,
-            débit/crédit ou montant.
+            Par défaut, ce fichier <strong>remplace</strong> l&apos;import précédent et reste en base
+            jusqu&apos;au prochain CSV.
           </p>
         </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="replaceExisting" className="rounded border" />
-          Remplacer les imports existants avant d&apos;importer
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="keepExisting" className="mt-0.5 rounded border" />
+          <span>
+            Ajouter sans remplacer
+            <span className="block text-muted-foreground">
+              Garde l&apos;ancien import et ajoute seulement les nouvelles lignes (dédoublonnage
+              automatique).
+            </span>
+          </span>
         </label>
 
         <Button type="submit" disabled={pending}>
-          {pending ? "Import en cours..." : "Importer les transactions"}
+          {pending
+            ? "Import en cours..."
+            : importedCount > 0
+              ? "Mettre à jour avec ce CSV"
+              : "Importer les transactions"}
         </Button>
 
         {message && (
@@ -86,7 +101,7 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
       {importedCount > 0 && (
         <div className="border-t pt-4">
           <p className="mb-2 text-sm text-muted-foreground">
-            Les données semblent incorrectes ou vous voulez tout réimporter ?
+            Vider totalement la base d&apos;imports (sans importer de nouveau fichier) ?
           </p>
           <Button
             type="button"
