@@ -15,15 +15,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
 
-      - name: Restore seen-listings database
+      - name: Restore seen listings
         uses: actions/cache@v4
         with:
           path: data/seen.json
           key: car-hunter-seen-v1
 
-      - run: npm ci
+      - run: npm install
 
       - name: Run car hunt
         run: npm run hunt
