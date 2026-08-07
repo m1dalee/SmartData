@@ -1,4 +1,4 @@
-import { AppNav } from "@/components/app-nav";
+import { AppShell } from "@/components/app-shell";
 import { CsvImportForm } from "@/components/import/csv-import-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getImportStats } from "@/app/actions/import";
@@ -7,17 +7,12 @@ export default async function ImportPage() {
   const { importedCount } = await getImportStats();
 
   return (
-    <div className="min-h-screen">
-      <AppNav currentPath="/import" />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Import banque</h1>
-          <p className="text-muted-foreground">
-            Récupérez vos données bancaires via l&apos;export CSV de votre espace client
-          </p>
-        </div>
-
-        <Card>
+    <AppShell
+      title="Import banque"
+      subtitle="Récupérez vos données via l'export CSV de votre espace client"
+    >
+      <div className="mx-auto max-w-3xl space-y-4">
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle>Importer un relevé CSV</CardTitle>
           </CardHeader>
@@ -26,7 +21,7 @@ export default async function ImportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
           <CardHeader>
             <CardTitle>Comment exporter depuis votre banque ?</CardTitle>
           </CardHeader>
@@ -50,7 +45,7 @@ export default async function ImportPage() {
             </p>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

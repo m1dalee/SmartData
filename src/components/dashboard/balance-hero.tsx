@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, PiggyBank, TrendingUp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, PiggyBank } from "lucide-react";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { DashboardStats } from "@/lib/types";
 
@@ -7,15 +7,11 @@ type Props = Pick<
   "totalBalance" | "income" | "expenses" | "savings" | "savingsRate" | "comparison"
 >;
 
-function DeltaBadge({ value, invert }: { value: number; invert?: boolean }) {
+function Delta({ value, invert }: { value: number; invert?: boolean }) {
   if (Math.abs(value) < 1) return null;
   const isGood = invert ? value < 0 : value > 0;
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        isGood ? "bg-emerald-500/15 text-emerald-700" : "bg-rose-500/15 text-rose-700"
-      }`}
-    >
+    <span className={`text-xs font-semibold ${isGood ? "text-money-in" : "text-money-out"}`}>
       {formatPercent(value)} vs mois dernier
     </span>
   );
@@ -23,48 +19,58 @@ function DeltaBadge({ value, invert }: { value: number; invert?: boolean }) {
 
 export function BalanceHero({ totalBalance, income, expenses, savings, savingsRate, comparison }: Props) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-6 text-white shadow-xl shadow-indigo-500/20">
-      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+    <div className="animate-fade-up grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5 sm:col-span-2 xl:col-span-1">
+        <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-brand/10 blur-2xl" />
+        <p className="text-sm font-medium text-muted-foreground">Tous mes comptes</p>
+        <p
+          className={`mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl ${
+            totalBalance >= 0 ? "text-money-in" : "text-money-out"
+          }`}
+        >
+          {formatCurrency(totalBalance)}
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">Solde cumulé de vos opérations</p>
+      </article>
 
-      <div className="relative space-y-6">
-        <div>
-          <p className="text-sm font-medium text-indigo-100">Solde cumulé</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">{formatCurrency(totalBalance)}</p>
+      <article className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-money-in">
+            <ArrowUpRight className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-medium">Mes revenus</span>
         </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-indigo-100">
-              <ArrowUpRight className="h-4 w-4" />
-              <span className="text-xs font-medium">Revenus</span>
-            </div>
-            <p className="mt-2 text-xl font-semibold">{formatCurrency(income)}</p>
-            <DeltaBadge value={comparison.incomeDelta} />
-          </div>
-
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-indigo-100">
-              <ArrowDownRight className="h-4 w-4" />
-              <span className="text-xs font-medium">Dépenses</span>
-            </div>
-            <p className="mt-2 text-xl font-semibold">{formatCurrency(expenses)}</p>
-            <DeltaBadge value={comparison.expensesDelta} invert />
-          </div>
-
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-indigo-100">
-              <PiggyBank className="h-4 w-4" />
-              <span className="text-xs font-medium">Épargne</span>
-            </div>
-            <p className="mt-2 text-xl font-semibold">{formatCurrency(savings)}</p>
-            <div className="mt-1 flex items-center gap-1 text-xs text-indigo-100">
-              <TrendingUp className="h-3 w-3" />
-              {savingsRate.toFixed(0)} % du revenu
-            </div>
-          </div>
+        <p className="mt-3 text-2xl font-bold text-money-in">{formatCurrency(income)}</p>
+        <div className="mt-1">
+          <Delta value={comparison.incomeDelta} />
         </div>
-      </div>
+      </article>
+
+      <article className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-money-out">
+            <ArrowDownRight className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-medium">Mes dépenses</span>
+        </div>
+        <p className="mt-3 text-2xl font-bold text-money-out">{formatCurrency(expenses)}</p>
+        <div className="mt-1">
+          <Delta value={comparison.expensesDelta} invert />
+        </div>
+      </article>
+
+      <article className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+            <PiggyBank className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-medium">Mon épargne</span>
+        </div>
+        <p className={`mt-3 text-2xl font-bold ${savings >= 0 ? "text-money-in" : "text-money-out"}`}>
+          {formatCurrency(savings)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{savingsRate.toFixed(0)} % du revenu</p>
+      </article>
     </div>
   );
 }
