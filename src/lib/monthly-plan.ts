@@ -9,10 +9,10 @@ import {
   getNextPaydayInfo,
   getPayCycleRange,
 } from "@/lib/pay-cycle";
+import { computeEffectiveExpenses, type EffectiveExpenses } from "@/lib/expense-attribution";
 import {
   countTransfers,
   filterRealTransactions,
-  sumRealExpenses,
   sumRealIncome,
   type TransactionWithCategory,
 } from "@/lib/transaction-filters";
@@ -31,6 +31,7 @@ export type BudgetSettings = {
   monthlySavingsTarget: number;
   paydayStartDay: number;
   paydayEndDay: number;
+  provisionalCardSpending: number | null;
 };
 
 export type MonthlyPlan = {
@@ -54,6 +55,7 @@ export type MonthlyPlan = {
   remainingBeforePayday: number;
   actualSavingsFromBank: number;
   isOverBudget: boolean;
+  cardSpending: EffectiveExpenses;
 };
 
 async function loadTransactionsWithCategories(): Promise<TransactionWithCategory[]> {
@@ -100,6 +102,7 @@ export async function getBudgetSettings(): Promise<BudgetSettings> {
     monthlySavingsTarget: settings?.monthlySavingsTarget ?? DEFAULT_BUDGET.monthlySavingsTarget,
     paydayStartDay: settings?.paydayStartDay ?? DEFAULT_BUDGET.paydayStartDay,
     paydayEndDay: settings?.paydayEndDay ?? DEFAULT_BUDGET.paydayEndDay,
+    provisionalCardSpending: settings?.provisionalCardSpending ?? null,
   };
 }
 
@@ -112,6 +115,10 @@ export async function updateBudgetSettings(settings: BudgetSettings): Promise<Bu
     monthlySavingsTarget: Math.max(0, settings.monthlySavingsTarget),
     paydayStartDay: Math.min(28, Math.max(1, Math.round(settings.paydayStartDay))),
     paydayEndDay: Math.min(28, Math.max(1, Math.round(settings.paydayEndDay))),
+    provisionalCardSpending:
+      settings.provisionalCardSpending != null
+        ? Math.max(0, settings.provisionalCardSpending)
+        : null,
   };
   if (safe.paydayEndDay < safe.paydayStartDay) {
     safe.paydayEndDay = safe.paydayStartDay;
@@ -145,7 +152,10 @@ export async function getMonthlyPlan(referenceDate: Date = new Date()): Promise<
 
   const totalMonthlyIncome = settings.monthlySalaryNet + settings.mealVoucherAmount;
   const spendingEnvelope = totalMonthlyIncome - settings.monthlySavingsTarget;
-  const expenses = sumRealExpenses(realCycleTxs);
+  const cardSpending = computeEffectiveExpenses(all, payCycle.start, payCycle.end, {
+    manualCardSpending: settings.provisionalCardSpending,
+  });
+  const expenses = cardSpending.total;
   const incomeFromBank = sumRealIncome(realCycleTxs);
   const remainingBeforePayday = spendingEnvelope - expenses;
 
@@ -170,6 +180,7 @@ export async function getMonthlyPlan(referenceDate: Date = new Date()): Promise<
     remainingBeforePayday,
     actualSavingsFromBank: incomeFromBank - expenses,
     isOverBudget: remainingBeforePayday < 0,
+    cardSpending,
   };
 }
 
@@ -177,12 +188,16 @@ export async function getMonthlyPlan(referenceDate: Date = new Date()): Promise<
 export function summarizeRealMonth(
   transactions: TransactionWithCategory[],
   month: string,
+  manualCardSpending?: number | null,
 ): { month: string; income: number; expenses: number; savings: number; savingsRate: number } {
   const { start, end } = getMonthRange(month);
   const monthTxs = transactions.filter((tx) => tx.date >= start && tx.date <= end);
   const real = filterRealTransactions(monthTxs);
   const income = sumRealIncome(real);
-  const expenses = sumRealExpenses(real);
+  const effective = computeEffectiveExpenses(transactions, start, end, {
+    manualCardSpending: manualCardSpending,
+  });
+  const expenses = effective.total;
   const savings = income - expenses;
   const savingsRate = income > 0 ? (savings / income) * 100 : 0;
   return { month, income, expenses, savings, savingsRate };

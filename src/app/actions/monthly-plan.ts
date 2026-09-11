@@ -21,6 +21,9 @@ export async function updateMonthlyBudgetSettings(formData: FormData) {
   const monthlySavingsTarget = parseAmount(formData.get("monthlySavingsTarget"));
   const paydayStartDay = parseDay(formData.get("paydayStartDay"));
   const paydayEndDay = parseDay(formData.get("paydayEndDay"));
+  const provisionalRaw = String(formData.get("provisionalCardSpending") ?? "").trim();
+  const provisionalCardSpending =
+    provisionalRaw === "" ? null : parseAmount(formData.get("provisionalCardSpending"));
 
   if (
     monthlySalaryNet === null ||
@@ -46,18 +49,39 @@ export async function updateMonthlyBudgetSettings(formData: FormData) {
     };
   }
 
+  if (provisionalRaw !== "" && provisionalCardSpending === null) {
+    return { success: false, message: "Prévisionnel carte invalide." };
+  }
+
   await updateBudgetSettings({
     monthlySalaryNet,
     mealVoucherAmount,
     monthlySavingsTarget,
     paydayStartDay,
     paydayEndDay,
+    provisionalCardSpending,
   });
 
   revalidatePath("/");
   revalidatePath("/budgets");
 
   return { success: true, message: "Budget mensuel mis à jour." };
+}
+
+export async function updateProvisionalCardSpending(formData: FormData) {
+  const amount = parseAmount(formData.get("provisionalCardSpending"));
+  if (amount === null) return { success: false, message: "Montant invalide." };
+
+  const current = await getBudgetSettings();
+  await updateBudgetSettings({ ...current, provisionalCardSpending: amount });
+
+  revalidatePath("/");
+  revalidatePath("/budgets");
+
+  return {
+    success: true,
+    message: `Prévisionnel carte mis à jour : ${amount.toLocaleString("fr-FR")} €.`,
+  };
 }
 
 export async function updateMonthlySavingsTarget(formData: FormData) {

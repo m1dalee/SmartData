@@ -50,6 +50,13 @@
       "when": 1789138000000,
       "tag": "0006_total_savings_balance",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1789138500000,
+      "tag": "0007_provisional_card_spending",
+      "breakpoints": true
     }
   ]
 }

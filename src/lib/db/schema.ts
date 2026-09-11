@@ -62,6 +62,8 @@ export const userSettings = sqliteTable("user_settings", {
   paydayEndDay: integer("payday_end_day").notNull().default(5),
   /** Solde total épargne (Livret + LDD…) déclaré par l'utilisateur. */
   totalSavingsBalance: real("total_savings_balance"),
+  /** Prévisionnel carte (app bancaire) quand le CSV n'a pas encore les achats CB. */
+  provisionalCardSpending: real("provisional_card_spending"),
   updatedAt: text("updated_at").notNull(),
 });
 

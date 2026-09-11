@@ -4,7 +4,8 @@ import { and, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { budgets, categories, savingsGoals, transactions } from "@/lib/db/schema";
 import { calcDelta, getCurrentMonth, getMonthRange, shiftMonth } from "@/lib/format";
-import { getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
+import { computeEffectiveExpenses } from "@/lib/expense-attribution";
+import { getBudgetSettings, getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
 import { MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
 import { filterRealTransactions, isTransferTransaction } from "@/lib/transaction-filters";
 import type {
@@ -87,6 +88,7 @@ function buildInsights(
 export async function getDashboardStats(month = getCurrentMonth()): Promise<DashboardStats> {
   const db = getDb();
   const { start, end } = getMonthRange(month);
+  const budgetSettings = await getBudgetSettings();
 
   const allWithCategories = await loadTransactionsWithCategories();
   const allTransactions = await db.select().from(transactions);
@@ -97,9 +99,10 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const expenses = realMonthTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const effectiveExpenses = computeEffectiveExpenses(allWithCategories, start, end, {
+    manualCardSpending: budgetSettings.provisionalCardSpending,
+  });
+  const expenses = effectiveExpenses.total;
 
   const savings = income - expenses;
   const savingsRate = income > 0 ? (savings / income) * 100 : 0;
@@ -133,7 +136,13 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
 
   const last12Months: MonthlySummary[] = [];
   for (let i = 11; i >= 0; i--) {
-    last12Months.push(summarizeRealMonth(allWithCategories, shiftMonth(month, -i)));
+    last12Months.push(
+      summarizeRealMonth(
+        allWithCategories,
+        shiftMonth(month, -i),
+        budgetSettings.provisionalCardSpending,
+      ),
+    );
   }
 
   const monthsWithData = last12Months.filter((m) => m.income > 0 || m.expenses > 0);
@@ -145,7 +154,11 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
   };
 
   const prevMonth = shiftMonth(month, -1);
-  const prevSummary = summarizeRealMonth(allWithCategories, prevMonth);
+  const prevSummary = summarizeRealMonth(
+    allWithCategories,
+    prevMonth,
+    budgetSettings.provisionalCardSpending,
+  );
   const hasPrevData = prevSummary.income > 0 || prevSummary.expenses > 0;
 
   const topExpenseRows = await db
