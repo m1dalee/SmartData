@@ -12,19 +12,39 @@ import {
   type TransactionWithCategory,
 } from "@/lib/transaction-filters";
 
+export const DEFAULT_BUDGET = {
+  monthlySalaryNet: 1830,
+  mealVoucherAmount: 160,
+  monthlySavingsTarget: 1500,
+} as const;
+
+export type BudgetSettings = {
+  monthlySalaryNet: number;
+  mealVoucherAmount: number;
+  monthlySavingsTarget: number;
+};
+
 export type MonthlyPlan = {
   month: string;
-  income: number;
-  expenses: number;
-  transfersExcluded: number;
+  /** Salaire net configuré (ex. 1 830 €). */
+  monthlySalaryNet: number;
+  /** Tickets resto configurés (ex. 160 €). */
+  mealVoucherAmount: number;
+  /** Total revenus prévus = salaire + tickets. */
+  totalMonthlyIncome: number;
+  /** Objectif épargne réservé (ex. 1 500 €). */
   monthlySavingsTarget: number;
-  /** Revenus − objectif épargne − dépenses (budget plaisirs restant). */
-  pleasuresRemaining: number;
-  /** Revenus − dépenses (épargne réelle du mois). */
-  actualSavings: number;
-  /** Objectif atteint si actualSavings >= monthlySavingsTarget. */
-  savingsTargetMet: boolean;
-  /** Dépassement si pleasuresRemaining < 0. */
+  /** Enveloppe dépenses = revenus − épargne (ex. 490 €). */
+  spendingEnvelope: number;
+  /** Dépenses réelles du mois (hors virements). */
+  expenses: number;
+  /** Revenus réellement détectés dans les imports (info). */
+  incomeFromBank: number;
+  transfersExcluded: number;
+  /** Il reste X € avant la prochaine paye. */
+  remainingBeforePayday: number;
+  /** Épargne réelle si on se base sur les entrées bancaires. */
+  actualSavingsFromBank: number;
   isOverBudget: boolean;
 };
 
@@ -52,50 +72,73 @@ export async function ensureUserSettings() {
   const existing = await db.select().from(userSettings).limit(1);
   if (existing.length === 0) {
     await db.insert(userSettings).values({
-      monthlySavingsTarget: 0,
+      monthlySalaryNet: DEFAULT_BUDGET.monthlySalaryNet,
+      mealVoucherAmount: DEFAULT_BUDGET.mealVoucherAmount,
+      monthlySavingsTarget: DEFAULT_BUDGET.monthlySavingsTarget,
       updatedAt: new Date().toISOString(),
     });
   }
 }
 
-export async function getMonthlySavingsTarget(): Promise<number> {
+export async function getBudgetSettings(): Promise<BudgetSettings> {
   await ensureUserSettings();
   const db = getDb();
   const [settings] = await db.select().from(userSettings).limit(1);
-  return settings?.monthlySavingsTarget ?? 0;
+  return {
+    monthlySalaryNet: settings?.monthlySalaryNet ?? DEFAULT_BUDGET.monthlySalaryNet,
+    mealVoucherAmount: settings?.mealVoucherAmount ?? DEFAULT_BUDGET.mealVoucherAmount,
+    monthlySavingsTarget: settings?.monthlySavingsTarget ?? DEFAULT_BUDGET.monthlySavingsTarget,
+  };
 }
 
-export async function setMonthlySavingsTarget(amount: number): Promise<number> {
+export async function updateBudgetSettings(settings: BudgetSettings): Promise<BudgetSettings> {
   await ensureUserSettings();
   const db = getDb();
-  const safeAmount = Math.max(0, amount);
-  await db
-    .update(userSettings)
-    .set({ monthlySavingsTarget: safeAmount, updatedAt: new Date().toISOString() });
-  return safeAmount;
+  const safe: BudgetSettings = {
+    monthlySalaryNet: Math.max(0, settings.monthlySalaryNet),
+    mealVoucherAmount: Math.max(0, settings.mealVoucherAmount),
+    monthlySavingsTarget: Math.max(0, settings.monthlySavingsTarget),
+  };
+  await db.update(userSettings).set({
+    ...safe,
+    updatedAt: new Date().toISOString(),
+  });
+  return safe;
+}
+
+/** @deprecated use updateBudgetSettings */
+export async function setMonthlySavingsTarget(amount: number): Promise<number> {
+  const current = await getBudgetSettings();
+  await updateBudgetSettings({ ...current, monthlySavingsTarget: amount });
+  return amount;
 }
 
 export async function getMonthlyPlan(month: string): Promise<MonthlyPlan> {
   const { start, end } = getMonthRange(month);
   const all = await loadTransactionsWithCategories();
   const monthTxs = all.filter((tx) => tx.date >= start && tx.date <= end);
+  const realMonthTxs = filterRealTransactions(monthTxs);
 
-  const income = sumRealIncome(monthTxs);
-  const expenses = sumRealExpenses(monthTxs);
-  const monthlySavingsTarget = await getMonthlySavingsTarget();
-  const pleasuresRemaining = income - monthlySavingsTarget - expenses;
-  const actualSavings = income - expenses;
+  const settings = await getBudgetSettings();
+  const totalMonthlyIncome = settings.monthlySalaryNet + settings.mealVoucherAmount;
+  const spendingEnvelope = totalMonthlyIncome - settings.monthlySavingsTarget;
+  const expenses = sumRealExpenses(realMonthTxs);
+  const incomeFromBank = sumRealIncome(realMonthTxs);
+  const remainingBeforePayday = spendingEnvelope - expenses;
 
   return {
     month,
-    income,
+    monthlySalaryNet: settings.monthlySalaryNet,
+    mealVoucherAmount: settings.mealVoucherAmount,
+    totalMonthlyIncome,
+    monthlySavingsTarget: settings.monthlySavingsTarget,
+    spendingEnvelope,
     expenses,
+    incomeFromBank,
     transfersExcluded: countTransfers(monthTxs),
-    monthlySavingsTarget,
-    pleasuresRemaining,
-    actualSavings,
-    savingsTargetMet: actualSavings >= monthlySavingsTarget,
-    isOverBudget: pleasuresRemaining < 0,
+    remainingBeforePayday,
+    actualSavingsFromBank: incomeFromBank - expenses,
+    isOverBudget: remainingBeforePayday < 0,
   };
 }
 

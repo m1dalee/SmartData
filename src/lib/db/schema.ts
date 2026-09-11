@@ -47,10 +47,15 @@ export const categoryRules = sqliteTable("category_rules", {
   createdAt: text("created_at").notNull(),
 });
 
-/** Objectif d'épargne mensuel (une seule ligne de config). */
+/** Budget mensuel personnel (une seule ligne de config). */
 export const userSettings = sqliteTable("user_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  monthlySavingsTarget: real("monthly_savings_target").notNull().default(0),
+  /** Salaire net mensuel (virement principal). */
+  monthlySalaryNet: real("monthly_salary_net").notNull().default(1830),
+  /** Tickets restaurant mensuels. */
+  mealVoucherAmount: real("meal_voucher_amount").notNull().default(160),
+  /** Montant à mettre de côté chaque mois avant les dépenses. */
+  monthlySavingsTarget: real("monthly_savings_target").notNull().default(1500),
   updatedAt: text("updated_at").notNull(),
 });
 

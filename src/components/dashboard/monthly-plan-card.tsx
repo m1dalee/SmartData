@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowDownRight, ArrowUpRight, PartyPopper, PiggyBank, Sparkles } from "lucide-react";
-import { updateMonthlySavingsTarget } from "@/app/actions/monthly-plan";
+import { ArrowDownRight, CalendarClock, PiggyBank, Wallet } from "lucide-react";
+import { updateMonthlyBudgetSettings } from "@/app/actions/monthly-plan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -14,22 +14,24 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
-  const [targetInput, setTargetInput] = useState(
-    plan.monthlySavingsTarget > 0 ? String(plan.monthlySavingsTarget) : "",
-  );
+  const [salaryInput, setSalaryInput] = useState(String(plan.monthlySalaryNet));
+  const [voucherInput, setVoucherInput] = useState(String(plan.mealVoucherAmount));
+  const [savingsInput, setSavingsInput] = useState(String(plan.monthlySavingsTarget));
 
-  const hasIncome = plan.income > 0;
-  const pleasuresPositive = plan.pleasuresRemaining >= 0;
-  const spentShare = plan.income > 0 ? (plan.expenses / plan.income) * 100 : 0;
-  const savingsShare = plan.income > 0 ? (plan.monthlySavingsTarget / plan.income) * 100 : 0;
-  const pleasuresShare = plan.income > 0 ? Math.max(0, (plan.pleasuresRemaining / plan.income) * 100) : 0;
+  const remainingPositive = plan.remainingBeforePayday >= 0;
+  const spentPercent =
+    plan.spendingEnvelope > 0
+      ? Math.min(100, (plan.expenses / plan.spendingEnvelope) * 100)
+      : 0;
 
-  const handleSaveTarget = () => {
+  const handleSave = () => {
     const formData = new FormData();
-    formData.set("monthlySavingsTarget", targetInput || "0");
+    formData.set("monthlySalaryNet", salaryInput);
+    formData.set("mealVoucherAmount", voucherInput);
+    formData.set("monthlySavingsTarget", savingsInput);
     startTransition(async () => {
-      await updateMonthlySavingsTarget(formData);
-      setEditing(false);
+      const result = await updateMonthlyBudgetSettings(formData);
+      if (result.success) setEditing(false);
       router.refresh();
     });
   };
@@ -37,190 +39,176 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
   return (
     <article className="animate-fade-up relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand to-[oklch(0.48_0.2_25)] p-6 text-brand-foreground shadow-lg shadow-brand/25">
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-16 -left-8 h-36 w-36 rounded-full bg-white/5 blur-2xl" />
 
       <div className="relative space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-xl space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-foreground/70">
-              Mon mois · hors virements
+              Avant la prochaine paye
             </p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-tight">Budget du mois</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight">Mon budget du mois</h2>
+            <p className="text-sm leading-relaxed text-brand-foreground/90">
+              Sur vos <strong>{formatCurrency(plan.monthlySalaryNet)}</strong> de salaire net
+              {plan.mealVoucherAmount > 0 && (
+                <>
+                  {" "}
+                  (+ <strong>{formatCurrency(plan.mealVoucherAmount)}</strong> tickets resto)
+                </>
+              )}
+              , vous avez dépensé <strong>{formatCurrency(plan.expenses)}</strong> ce mois.
+              <br />
+              <strong>{formatCurrency(plan.monthlySavingsTarget)}</strong> sont réservés pour
+              l&apos;épargne.
+            </p>
             {plan.transfersExcluded > 0 && (
-              <p className="mt-1 text-xs text-brand-foreground/75">
+              <p className="text-xs text-brand-foreground/70">
                 {plan.transfersExcluded} virement{plan.transfersExcluded > 1 ? "s" : ""} exclu
-                {plan.transfersExcluded > 1 ? "s" : ""}
+                {plan.transfersExcluded > 1 ? "s" : ""} du calcul
               </p>
             )}
           </div>
 
-          <div className="rounded-xl bg-white/15 px-4 py-3 backdrop-blur-sm">
-            {hasIncome ? (
-              pleasuresPositive ? (
-                <>
-                  <div className="flex items-center gap-2 text-brand-foreground/90">
-                    <Sparkles className="h-4 w-4" />
-                    <span className="text-sm font-medium">Plaisirs restants</span>
-                  </div>
-                  <p className="mt-1 text-3xl font-extrabold tracking-tight">
-                    {formatCurrency(plan.pleasuresRemaining)}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 text-brand-foreground/90">
-                    <PartyPopper className="h-4 w-4" />
-                    <span className="text-sm font-medium">Budget dépassé</span>
-                  </div>
-                  <p className="mt-1 text-3xl font-extrabold tracking-tight">
-                    {formatCurrency(Math.abs(plan.pleasuresRemaining))}
-                  </p>
-                  <p className="text-xs text-brand-foreground/80">au-delà de votre enveloppe</p>
-                </>
-              )
-            ) : (
-              <p className="text-sm text-brand-foreground/85">
-                Importez vos transactions pour voir votre budget plaisirs.
-              </p>
-            )}
+          <div className="shrink-0 rounded-xl bg-white/15 px-5 py-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-brand-foreground/90">
+              <CalendarClock className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                {remainingPositive ? "Il vous reste" : "Dépassement de"}
+              </span>
+            </div>
+            <p className="mt-1 text-4xl font-extrabold tracking-tight">
+              {formatCurrency(Math.abs(plan.remainingBeforePayday))}
+            </p>
+            <p className="mt-1 text-xs text-brand-foreground/80">
+              {remainingPositive
+                ? "avant la prochaine paye"
+                : "par rapport à votre enveloppe du mois"}
+            </p>
           </div>
         </div>
 
-        {hasIncome && (
-          <p className="text-sm text-brand-foreground/90">
-            {pleasuresPositive ? (
-              <>
-                Il vous reste <strong>{formatCurrency(plan.pleasuresRemaining)}</strong> pour les plaisirs du
-                mois, après épargne et dépenses.
-              </>
-            ) : (
-              <>
-                Vous avez dépassé votre enveloppe de{" "}
-                <strong>{formatCurrency(Math.abs(plan.pleasuresRemaining))}</strong> ce mois-ci.
-              </>
-            )}
-          </p>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-brand-foreground/85">
-              <ArrowUpRight className="h-4 w-4" />
-              <span className="text-xs font-medium">Entrées</span>
+              <Wallet className="h-4 w-4" />
+              <span className="text-xs font-medium">Salaire net</span>
             </div>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.income)}</p>
-          </div>
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-brand-foreground/85">
-              <ArrowDownRight className="h-4 w-4" />
-              <span className="text-xs font-medium">Sorties</span>
-            </div>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.expenses)}</p>
+            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.monthlySalaryNet)}</p>
           </div>
           <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-brand-foreground/85">
               <PiggyBank className="h-4 w-4" />
-              <span className="text-xs font-medium">Épargne réelle</span>
+              <span className="text-xs font-medium">Épargne réservée</span>
             </div>
-            <p className={`mt-2 text-xl font-bold ${plan.actualSavings >= 0 ? "" : "text-rose-200"}`}>
-              {formatCurrency(plan.actualSavings)}
+            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.monthlySavingsTarget)}</p>
+          </div>
+          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-brand-foreground/85">
+              <ArrowDownRight className="h-4 w-4" />
+              <span className="text-xs font-medium">Dépensé ce mois</span>
+            </div>
+            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.expenses)}</p>
+          </div>
+          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
+            <p className="text-xs font-medium text-brand-foreground/85">Enveloppe du mois</p>
+            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.spendingEnvelope)}</p>
+            <p className="mt-1 text-[11px] text-brand-foreground/70">
+              après épargne ({formatCurrency(plan.totalMonthlyIncome)} −{" "}
+              {formatCurrency(plan.monthlySavingsTarget)})
             </p>
           </div>
         </div>
 
-        {hasIncome && plan.income > 0 && (
+        {plan.spendingEnvelope > 0 && (
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-brand-foreground/80">
-              <span>Dépenses {spentShare.toFixed(0)} %</span>
-              <span>Objectif épargne {savingsShare.toFixed(0)} %</span>
-              <span>Plaisirs {pleasuresShare.toFixed(0)} %</span>
+              <span>Dépensé {spentPercent.toFixed(0)} % de l&apos;enveloppe</span>
+              <span>
+                {formatCurrency(plan.expenses)} / {formatCurrency(plan.spendingEnvelope)}
+              </span>
             </div>
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-white/20">
-              <div
-                className="bg-rose-300/90 transition-all"
-                style={{ width: `${Math.min(100, spentShare)}%` }}
-              />
-              <div
-                className="bg-emerald-300/90 transition-all"
-                style={{ width: `${Math.min(100 - spentShare, savingsShare)}%` }}
-              />
-              <div
-                className="bg-amber-200/90 transition-all"
-                style={{ width: `${Math.max(0, pleasuresShare)}%` }}
-              />
-            </div>
+            <Progress
+              value={spentPercent}
+              className={`h-2.5 bg-white/20 ${plan.isOverBudget ? "[&>div]:bg-rose-300" : "[&>div]:bg-amber-200"}`}
+            />
           </div>
         )}
 
         <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold">Objectif d&apos;épargne mensuel</p>
-              <p className="text-xs text-brand-foreground/75">
-                Montant à mettre de côté avant les plaisirs
-              </p>
-            </div>
-            {editing ? (
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  step="10"
-                  value={targetInput}
-                  onChange={(e) => setTargetInput(e.target.value)}
-                  placeholder="Ex: 300"
-                  className="w-28 border-white/30 bg-white/90 text-foreground"
-                />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleSaveTarget}
-                  disabled={pending}
-                  className="bg-white text-brand hover:bg-white/90"
-                >
-                  OK
-                </Button>
-              </div>
-            ) : (
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Mes revenus & objectif épargne</p>
+            {!editing && (
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => setEditing(true)}
                 className="bg-white/20 text-brand-foreground hover:bg-white/30"
               >
-                {plan.monthlySavingsTarget > 0
-                  ? `${formatCurrency(plan.monthlySavingsTarget)} / mois — modifier`
-                  : "Définir mon objectif"}
+                Modifier
               </Button>
             )}
           </div>
 
-          {plan.monthlySavingsTarget > 0 && (
-            <div className="mt-3 space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-brand-foreground/80">Progression épargne</span>
-                <span className="font-semibold">
-                  {formatCurrency(Math.max(0, plan.actualSavings))} /{" "}
-                  {formatCurrency(plan.monthlySavingsTarget)}
-                </span>
+          {editing ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="space-y-1 text-xs">
+                <span>Salaire net (€)</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="10"
+                  value={salaryInput}
+                  onChange={(e) => setSalaryInput(e.target.value)}
+                  className="border-white/30 bg-white/90 text-foreground"
+                />
+              </label>
+              <label className="space-y-1 text-xs">
+                <span>Tickets resto (€)</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="10"
+                  value={voucherInput}
+                  onChange={(e) => setVoucherInput(e.target.value)}
+                  className="border-white/30 bg-white/90 text-foreground"
+                />
+              </label>
+              <label className="space-y-1 text-xs">
+                <span>Épargne / mois (€)</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={savingsInput}
+                  onChange={(e) => setSavingsInput(e.target.value)}
+                  className="border-white/30 bg-white/90 text-foreground"
+                />
+              </label>
+              <div className="flex gap-2 sm:col-span-3">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={pending}
+                  className="bg-white text-brand hover:bg-white/90"
+                >
+                  {pending ? "Enregistrement..." : "Enregistrer"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditing(false)}
+                  className="text-brand-foreground hover:bg-white/10"
+                >
+                  Annuler
+                </Button>
               </div>
-              <Progress
-                value={Math.min(
-                  100,
-                  plan.monthlySavingsTarget > 0
-                    ? (Math.max(0, plan.actualSavings) / plan.monthlySavingsTarget) * 100
-                    : 0,
-                )}
-                className="h-2 bg-white/20 [&>div]:bg-emerald-300"
-              />
-              {plan.savingsTargetMet ? (
-                <p className="text-xs text-emerald-200">Objectif d&apos;épargne atteint ce mois-ci</p>
-              ) : plan.actualSavings > 0 ? (
-                <p className="text-xs text-brand-foreground/75">
-                  Plus que {formatCurrency(plan.monthlySavingsTarget - plan.actualSavings)} pour l&apos;objectif
-                </p>
-              ) : null}
             </div>
+          ) : (
+            <p className="text-sm text-brand-foreground/85">
+              {formatCurrency(plan.monthlySalaryNet)} salaire +{" "}
+              {formatCurrency(plan.mealVoucherAmount)} tickets −{" "}
+              {formatCurrency(plan.monthlySavingsTarget)} épargne ={" "}
+              <strong>{formatCurrency(plan.spendingEnvelope)}</strong> pour vivre ce mois.
+            </p>
           )}
         </div>
       </div>
