@@ -1,4 +1,5 @@
 import type { Budget, Category, SavingsGoal } from "@/lib/db/schema";
+import type { MonthlyPlan } from "@/lib/monthly-plan";
 
 export type MonthlySummary = {
   month: string;
@@ -57,4 +58,5 @@ export type DashboardStats = {
   };
   goals: SavingsGoal[];
   monthBudgets: { budget: Budget; category: Category }[];
+  monthlyPlan: MonthlyPlan;
 };

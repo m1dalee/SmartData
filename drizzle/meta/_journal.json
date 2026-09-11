@@ -22,6 +22,27 @@
       "when": 1785967131656,
       "tag": "0002_smiling_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789136238128,
+      "tag": "0003_wild_harry_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789136987174,
+      "tag": "0004_dizzy_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789137500000,
+      "tag": "0005_payday_window",
+      "breakpoints": true
     }
   ]
 }
