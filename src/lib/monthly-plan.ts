@@ -9,7 +9,7 @@ import {
   getNextPaydayInfo,
   getPayCycleRange,
 } from "@/lib/pay-cycle";
-import { computeEffectiveExpenses, type EffectiveExpenses } from "@/lib/expense-attribution";
+import { computeBudgetExpenses, type EffectiveExpenses } from "@/lib/expense-attribution";
 import {
   countTransfers,
   filterRealTransactions,
@@ -150,11 +150,19 @@ export async function getMonthlyPlan(referenceDate: Date = new Date()): Promise<
   const cycleTxs = all.filter((tx) => tx.date >= payCycle.start && tx.date <= payCycle.end);
   const realCycleTxs = filterRealTransactions(cycleTxs);
 
+  const calendarMonth = `${referenceDate.getFullYear()}-${String(referenceDate.getMonth() + 1).padStart(2, "0")}`;
+  const calendarRange = getMonthRange(calendarMonth);
+
   const totalMonthlyIncome = settings.monthlySalaryNet + settings.mealVoucherAmount;
   const spendingEnvelope = totalMonthlyIncome - settings.monthlySavingsTarget;
-  const cardSpending = computeEffectiveExpenses(all, payCycle.start, payCycle.end, {
-    manualCardSpending: settings.provisionalCardSpending,
-  });
+  const cardSpending = computeBudgetExpenses(
+    all,
+    payCycle.start,
+    payCycle.end,
+    calendarRange.start,
+    calendarRange.end,
+    { manualCardSpending: settings.provisionalCardSpending },
+  );
   const expenses = cardSpending.total;
   const incomeFromBank = sumRealIncome(realCycleTxs);
   const remainingBeforePayday = spendingEnvelope - expenses;
@@ -189,13 +197,14 @@ export function summarizeRealMonth(
   transactions: TransactionWithCategory[],
   month: string,
   manualCardSpending?: number | null,
+  isCurrentMonth = false,
 ): { month: string; income: number; expenses: number; savings: number; savingsRate: number } {
   const { start, end } = getMonthRange(month);
   const monthTxs = transactions.filter((tx) => tx.date >= start && tx.date <= end);
   const real = filterRealTransactions(monthTxs);
   const income = sumRealIncome(real);
-  const effective = computeEffectiveExpenses(transactions, start, end, {
-    manualCardSpending: manualCardSpending,
+  const effective = computeBudgetExpenses(transactions, start, end, start, end, {
+    manualCardSpending: isCurrentMonth ? manualCardSpending : null,
   });
   const expenses = effective.total;
   const savings = income - expenses;

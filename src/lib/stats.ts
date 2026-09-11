@@ -4,7 +4,7 @@ import { and, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { budgets, categories, savingsGoals, transactions } from "@/lib/db/schema";
 import { calcDelta, getCurrentMonth, getMonthRange, shiftMonth } from "@/lib/format";
-import { computeEffectiveExpenses } from "@/lib/expense-attribution";
+import { computeBudgetExpenses } from "@/lib/expense-attribution";
 import { getBudgetSettings, getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
 import { MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
 import { filterRealTransactions, isTransferTransaction } from "@/lib/transaction-filters";
@@ -99,9 +99,14 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const effectiveExpenses = computeEffectiveExpenses(allWithCategories, start, end, {
-    manualCardSpending: budgetSettings.provisionalCardSpending,
-  });
+  const effectiveExpenses = computeBudgetExpenses(
+    allWithCategories,
+    start,
+    end,
+    start,
+    end,
+    { manualCardSpending: budgetSettings.provisionalCardSpending },
+  );
   const expenses = effectiveExpenses.total;
 
   const savings = income - expenses;
@@ -136,11 +141,13 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
 
   const last12Months: MonthlySummary[] = [];
   for (let i = 11; i >= 0; i--) {
+    const targetMonth = shiftMonth(month, -i);
     last12Months.push(
       summarizeRealMonth(
         allWithCategories,
-        shiftMonth(month, -i),
+        targetMonth,
         budgetSettings.provisionalCardSpending,
+        targetMonth === month,
       ),
     );
   }
@@ -154,11 +161,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
   };
 
   const prevMonth = shiftMonth(month, -1);
-  const prevSummary = summarizeRealMonth(
-    allWithCategories,
-    prevMonth,
-    budgetSettings.provisionalCardSpending,
-  );
+  const prevSummary = summarizeRealMonth(allWithCategories, prevMonth, null, false);
   const hasPrevData = prevSummary.income > 0 || prevSummary.expenses > 0;
 
   const topExpenseRows = await db

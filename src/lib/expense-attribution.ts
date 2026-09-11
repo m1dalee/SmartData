@@ -19,11 +19,11 @@ export type EffectiveExpenses = {
   cardProvisional: number;
   /** Saisie manuelle depuis l'app bancaire (optionnel). */
   cardManualOverride: number | null;
-  /** Estimation basée sur le prélèvement carte du mois précédent. */
-  cardEstimated: number;
+  /** Montant du dernier prélèvement carte (indicatif seulement). */
+  lastCardSettlement: number;
   /** Un prélèvement carte est attendu mais pas encore dans le CSV. */
   hasPendingCardSettlement: boolean;
-  /** Au moins une part des dépenses carte est encore estimée / provisoire. */
+  /** Au moins une part des dépenses carte est encore provisoire. */
   isProvisional: boolean;
   settlements: DeferredCardSettlement[];
 };
@@ -55,101 +55,170 @@ function settlementAppliesToPeriod(
   periodStart: string,
   periodEnd: string,
 ): boolean {
-  // Compte sur le mois de consommation (cutoff), pas la date de débit bancaire.
   return settlement.consumptionCutoff >= periodStart && settlement.consumptionCutoff <= periodEnd;
 }
 
-/**
- * Calcule les dépenses effectives d'une période en gérant le paiement différé :
- * - prélèvement carte = dépenses réelles du mois de consommation ;
- * - achats carte individuels = provisionnel tant que le prélèvement n'est pas passé ;
- * - pas de double comptage entre les deux.
- */
-function findPreviousCardSettlement(
-  settlements: DeferredCardSettlement[],
-  periodStart: string,
-): DeferredCardSettlement | null {
-  const before = settlements
-    .filter((s) => s.consumptionCutoff < periodStart)
-    .sort((a, b) => b.consumptionCutoff.localeCompare(a.consumptionCutoff));
-  return before[0] ?? null;
+function isOpenPeriod(periodStart: string, periodEnd: string): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  return today >= periodStart && today <= periodEnd;
 }
 
-export function computeEffectiveExpenses(
-  transactions: TransactionWithCategory[],
-  periodStart: string,
-  periodEnd: string,
-  options?: { manualCardSpending?: number | null },
-): EffectiveExpenses {
-  const selfSavingsNames = detectSelfSavingsNames(transactions);
+function findLastCardSettlement(
+  settlements: DeferredCardSettlement[],
+): DeferredCardSettlement | null {
+  return [...settlements].sort((a, b) => b.consumptionCutoff.localeCompare(a.consumptionCutoff))[0] ?? null;
+}
 
-  const allSettlements = transactions
+function getAllSettlements(transactions: TransactionWithCategory[]): DeferredCardSettlement[] {
+  return transactions
     .filter((tx) => tx.type === "expense" && isDeferredCardSettlement(tx.label))
     .map((tx) => parseDeferredCardSettlement(tx.label, tx.amount, tx.date))
     .filter((s): s is DeferredCardSettlement => s !== null);
+}
 
-  const periodSettlements = allSettlements.filter((s) =>
-    settlementAppliesToPeriod(s, periodStart, periodEnd),
-  );
-
+/** Prélèvements / hors carte sur une période (cycle de paye). */
+export function computeOtherExpenses(
+  transactions: TransactionWithCategory[],
+  periodStart: string,
+  periodEnd: string,
+): number {
+  const selfSavingsNames = detectSelfSavingsNames(transactions);
+  const allSettlements = getAllSettlements(transactions);
   let other = 0;
-  let cardProvisional = 0;
 
   for (const tx of transactions) {
     if (tx.date < periodStart || tx.date > periodEnd) continue;
     if (isExcludedFromExpenses(tx, selfSavingsNames)) continue;
     if (isDeferredCardSettlement(tx.label)) continue;
+    if (isLikelyCardPurchase(tx.label)) continue;
 
-    const amount = Math.abs(tx.amount);
+    other += Math.abs(tx.amount);
+  }
 
-    if (isLikelyCardPurchase(tx.label)) {
-      if (isMerchantCoveredBySettlement(tx, allSettlements)) continue;
-      cardProvisional += amount;
-      continue;
-    }
+  // Prélèvements carte comptés via computeCardSpending, pas ici.
+  void allSettlements;
 
-    other += amount;
+  return other;
+}
+
+/**
+ * Dépenses carte pour un mois calendaire (aligné sur le prévisionnel CA).
+ * Le prélèvement du ~30 est attribué au mois de consommation, pas au mois de débit.
+ */
+export function computeCardSpending(
+  transactions: TransactionWithCategory[],
+  periodStart: string,
+  periodEnd: string,
+  options?: { manualCardSpending?: number | null; applyManual?: boolean },
+): Pick<
+  EffectiveExpenses,
+  | "cardSettled"
+  | "cardProvisional"
+  | "cardManualOverride"
+  | "lastCardSettlement"
+  | "hasPendingCardSettlement"
+  | "isProvisional"
+  | "settlements"
+> & { cardTotal: number } {
+  const allSettlements = getAllSettlements(transactions);
+  const periodSettlements = allSettlements.filter((s) =>
+    settlementAppliesToPeriod(s, periodStart, periodEnd),
+  );
+  const lastSettlement = findLastCardSettlement(allSettlements);
+
+  let cardProvisional = 0;
+  for (const tx of transactions) {
+    if (tx.date < periodStart || tx.date > periodEnd) continue;
+    if (!isLikelyCardPurchase(tx.label)) continue;
+    if (isMerchantCoveredBySettlement(tx, allSettlements)) continue;
+    cardProvisional += Math.abs(tx.amount);
   }
 
   const cardSettled = periodSettlements.reduce((sum, s) => sum + s.amount, 0);
   const manualOverride =
-    options?.manualCardSpending != null && options.manualCardSpending >= 0
+    options?.applyManual !== false &&
+    options?.manualCardSpending != null &&
+    options.manualCardSpending >= 0
       ? options.manualCardSpending
       : null;
-
-  const previousSettlement = findPreviousCardSettlement(allSettlements, periodStart);
-  const cardEstimated = previousSettlement?.amount ?? 0;
+  const openPeriod = isOpenPeriod(periodStart, periodEnd);
 
   let cardTotal = 0;
   let isProvisional = false;
 
   if (cardSettled > 0) {
-    cardTotal = Math.max(cardSettled, cardProvisional);
-  } else if (manualOverride !== null) {
-    cardTotal = Math.max(manualOverride, cardProvisional);
-    isProvisional = cardProvisional < manualOverride;
+    // Prélèvement du ~30 passé : montant réel, point final.
+    cardTotal = cardSettled;
+  } else if (openPeriod && manualOverride !== null) {
+    // Prévisionnel saisi = source de vérité (ne pas ajouter d'estimation).
+    cardTotal = manualOverride;
+    isProvisional = true;
   } else if (cardProvisional > 0) {
     cardTotal = cardProvisional;
-    isProvisional = true;
-  } else if (cardEstimated > 0 && periodEnd >= new Date().toISOString().slice(0, 10)) {
-    cardTotal = cardEstimated;
-    isProvisional = true;
+    isProvisional = openPeriod;
   }
 
-  const hasPendingCardSettlement =
-    cardSettled === 0 &&
-    cardTotal > 0 &&
-    periodEnd >= new Date().toISOString().slice(0, 10);
+  const hasPendingCardSettlement = openPeriod && cardSettled === 0 && cardTotal > 0;
 
   return {
-    total: other + cardTotal,
-    other,
+    cardTotal,
     cardSettled,
     cardProvisional,
-    cardManualOverride: manualOverride,
-    cardEstimated,
+    cardManualOverride: openPeriod ? manualOverride : null,
+    lastCardSettlement: lastSettlement?.amount ?? 0,
     hasPendingCardSettlement,
     isProvisional,
     settlements: periodSettlements,
+  };
+}
+
+/** Budget complet = prélèvements du cycle + carte du mois calendaire. */
+export function computeEffectiveExpenses(
+  transactions: TransactionWithCategory[],
+  periodStart: string,
+  periodEnd: string,
+  options?: { manualCardSpending?: number | null; applyManual?: boolean },
+): EffectiveExpenses {
+  const other = computeOtherExpenses(transactions, periodStart, periodEnd);
+  const card = computeCardSpending(transactions, periodStart, periodEnd, options);
+
+  return {
+    total: other + card.cardTotal,
+    other,
+    cardSettled: card.cardSettled,
+    cardProvisional: card.cardProvisional,
+    cardManualOverride: card.cardManualOverride,
+    lastCardSettlement: card.lastCardSettlement,
+    hasPendingCardSettlement: card.hasPendingCardSettlement,
+    isProvisional: card.isProvisional,
+    settlements: card.settlements,
+  };
+}
+
+/** Cycle de paye + mois calendaire courant pour la partie carte. */
+export function computeBudgetExpenses(
+  transactions: TransactionWithCategory[],
+  cycleStart: string,
+  cycleEnd: string,
+  calendarMonthStart: string,
+  calendarMonthEnd: string,
+  options?: { manualCardSpending?: number | null },
+): EffectiveExpenses {
+  const other = computeOtherExpenses(transactions, cycleStart, cycleEnd);
+  const card = computeCardSpending(transactions, calendarMonthStart, calendarMonthEnd, {
+    manualCardSpending: options?.manualCardSpending,
+    applyManual: true,
+  });
+
+  return {
+    total: other + card.cardTotal,
+    other,
+    cardSettled: card.cardSettled,
+    cardProvisional: card.cardProvisional,
+    cardManualOverride: card.cardManualOverride,
+    lastCardSettlement: card.lastCardSettlement,
+    hasPendingCardSettlement: card.hasPendingCardSettlement,
+    isProvisional: card.isProvisional,
+    settlements: card.settlements,
   };
 }

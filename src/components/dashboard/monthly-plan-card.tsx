@@ -111,8 +111,8 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
             {cardLabel && (
               <p className="text-xs text-brand-foreground/75">
                 Paiement différé : {cardLabel}
-                {cardSpending.cardSettled === 0 && cardSpending.cardEstimated > 0 && (
-                  <> · mois précédent {formatCurrency(cardSpending.cardEstimated)}</>
+                {cardSpending.cardSettled === 0 && cardSpending.lastCardSettlement > 0 && (
+                  <> · prélèvement précédent {formatCurrency(cardSpending.lastCardSettlement)}</>
                 )}
               </p>
             )}
@@ -165,7 +165,12 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
             <p className="mt-2 text-xl font-bold">{formatCurrency(plan.expenses)}</p>
             {cardSpending.other > 0 && (
               <p className="mt-1 text-[11px] text-brand-foreground/70">
-                hors carte {formatCurrency(cardSpending.other)}
+                prélèvements {formatCurrency(cardSpending.other)} + carte{" "}
+                {formatCurrency(
+                  cardSpending.cardSettled > 0
+                    ? cardSpending.cardSettled
+                    : (cardSpending.cardManualOverride ?? cardSpending.cardProvisional),
+                )}
               </p>
             )}
           </div>
@@ -210,9 +215,9 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
               )}
             </div>
             <p className="text-xs leading-relaxed text-brand-foreground/85">
-              Le Crédit Agricole prélève tes achats CB en une fois par mois. Copie le montant
-              &laquo;&nbsp;prévisionnel&nbsp;&raquo; de ton app bancaire pour un suivi réaliste
-              avant le prélèvement.
+              Le Crédit Agricole prélève tes achats CB vers le 30 du mois. Copie uniquement le
+              montant &laquo;&nbsp;prévisionnel carte&nbsp;&raquo; de ton app — il remplace
+              l&apos;estimation, sans double comptage avec les prélèvements SEPA.
             </p>
             {editingCard ? (
               <div className="mt-3 flex gap-2">
@@ -222,7 +227,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
                   step="1"
                   value={cardInput}
                   onChange={(e) => setCardInput(e.target.value)}
-                  placeholder="Ex: 850"
+                  placeholder="Ex: 430"
                   className="border-white/30 bg-white/90 text-foreground"
                 />
                 <Button
@@ -241,9 +246,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
                   ? formatCurrency(cardSpending.cardManualOverride)
                   : cardSpending.cardProvisional > 0
                     ? `${formatCurrency(cardSpending.cardProvisional)} (CSV)`
-                    : cardSpending.cardEstimated > 0
-                      ? `${formatCurrency(cardSpending.cardEstimated)} (estimé)`
-                      : "non renseigné"}
+                    : "non renseigné — mets ton prévisionnel CA"}
               </p>
             )}
           </div>
