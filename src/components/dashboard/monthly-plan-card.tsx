@@ -17,6 +17,8 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
   const [salaryInput, setSalaryInput] = useState(String(plan.monthlySalaryNet));
   const [voucherInput, setVoucherInput] = useState(String(plan.mealVoucherAmount));
   const [savingsInput, setSavingsInput] = useState(String(plan.monthlySavingsTarget));
+  const [paydayStartInput, setPaydayStartInput] = useState(String(plan.paydayStartDay));
+  const [paydayEndInput, setPaydayEndInput] = useState(String(plan.paydayEndDay));
 
   const remainingPositive = plan.remainingBeforePayday >= 0;
   const spentPercent =
@@ -29,6 +31,8 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
     formData.set("monthlySalaryNet", salaryInput);
     formData.set("mealVoucherAmount", voucherInput);
     formData.set("monthlySavingsTarget", savingsInput);
+    formData.set("paydayStartDay", paydayStartInput);
+    formData.set("paydayEndDay", paydayEndInput);
     startTransition(async () => {
       const result = await updateMonthlyBudgetSettings(formData);
       if (result.success) setEditing(false);
@@ -44,9 +48,16 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-xl space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-foreground/70">
-              Avant la prochaine paye
+              Cycle de paye · {plan.payCycleLabel}
             </p>
             <h2 className="text-2xl font-extrabold tracking-tight">Mon budget du mois</h2>
+            <p className="text-xs text-brand-foreground/75">
+              {plan.isPaydayWindow
+                ? "Fenêtre de paye en cours"
+                : plan.daysUntilPayday === 0
+                  ? `Prochaine paye : ${plan.nextPaydayLabel}`
+                  : `Prochaine paye dans ${plan.daysUntilPayday} jour${plan.daysUntilPayday > 1 ? "s" : ""} (${plan.nextPaydayLabel})`}
+            </p>
             <p className="text-sm leading-relaxed text-brand-foreground/90">
               Sur vos <strong>{formatCurrency(plan.monthlySalaryNet)}</strong> de salaire net
               {plan.mealVoucherAmount > 0 && (
@@ -149,7 +160,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
           </div>
 
           {editing ? (
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="space-y-1 text-xs">
                 <span>Salaire net (€)</span>
                 <Input
@@ -183,7 +194,29 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
                   className="border-white/30 bg-white/90 text-foreground"
                 />
               </label>
-              <div className="flex gap-2 sm:col-span-3">
+              <label className="space-y-1 text-xs">
+                <span>Paye du (jour)</span>
+                <Input
+                  type="number"
+                  min="1"
+                  max="28"
+                  value={paydayStartInput}
+                  onChange={(e) => setPaydayStartInput(e.target.value)}
+                  className="border-white/30 bg-white/90 text-foreground"
+                />
+              </label>
+              <label className="space-y-1 text-xs">
+                <span>Paye au (jour)</span>
+                <Input
+                  type="number"
+                  min="1"
+                  max="28"
+                  value={paydayEndInput}
+                  onChange={(e) => setPaydayEndInput(e.target.value)}
+                  className="border-white/30 bg-white/90 text-foreground"
+                />
+              </label>
+              <div className="flex gap-2 sm:col-span-2 lg:col-span-3">
                 <Button
                   size="sm"
                   onClick={handleSave}
@@ -204,10 +237,12 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
             </div>
           ) : (
             <p className="text-sm text-brand-foreground/85">
+              Paye entre le <strong>{plan.paydayStartDay}</strong> et le{" "}
+              <strong>{plan.paydayEndDay}</strong> de chaque mois ·{" "}
               {formatCurrency(plan.monthlySalaryNet)} salaire +{" "}
               {formatCurrency(plan.mealVoucherAmount)} tickets −{" "}
               {formatCurrency(plan.monthlySavingsTarget)} épargne ={" "}
-              <strong>{formatCurrency(plan.spendingEnvelope)}</strong> pour vivre ce mois.
+              <strong>{formatCurrency(plan.spendingEnvelope)}</strong> pour vivre sur le cycle en cours.
             </p>
           )}
         </div>

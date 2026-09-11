@@ -185,7 +185,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     .where(eq(budgets.month, month));
 
   const currentSummary: MonthlySummary = { month, income, expenses, savings, savingsRate };
-  const monthlyPlan = await getMonthlyPlan(month);
+  const monthlyPlan = await getMonthlyPlan();
 
   return {
     month,

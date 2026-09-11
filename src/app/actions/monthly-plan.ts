@@ -9,17 +9,27 @@ function parseAmount(raw: FormDataEntryValue | null): number | null {
   return amount;
 }
 
+function parseDay(raw: FormDataEntryValue | null): number | null {
+  const day = Number.parseInt(String(raw ?? ""), 10);
+  if (Number.isNaN(day) || day < 1 || day > 28) return null;
+  return day;
+}
+
 export async function updateMonthlyBudgetSettings(formData: FormData) {
   const monthlySalaryNet = parseAmount(formData.get("monthlySalaryNet"));
   const mealVoucherAmount = parseAmount(formData.get("mealVoucherAmount"));
   const monthlySavingsTarget = parseAmount(formData.get("monthlySavingsTarget"));
+  const paydayStartDay = parseDay(formData.get("paydayStartDay"));
+  const paydayEndDay = parseDay(formData.get("paydayEndDay"));
 
   if (
     monthlySalaryNet === null ||
     mealVoucherAmount === null ||
-    monthlySavingsTarget === null
+    monthlySavingsTarget === null ||
+    paydayStartDay === null ||
+    paydayEndDay === null
   ) {
-    return { success: false, message: "Montants invalides." };
+    return { success: false, message: "Valeurs invalides." };
   }
 
   if (monthlySavingsTarget > monthlySalaryNet + mealVoucherAmount) {
@@ -29,7 +39,20 @@ export async function updateMonthlyBudgetSettings(formData: FormData) {
     };
   }
 
-  await updateBudgetSettings({ monthlySalaryNet, mealVoucherAmount, monthlySavingsTarget });
+  if (paydayEndDay < paydayStartDay) {
+    return {
+      success: false,
+      message: "Le jour de fin de paye doit être après le jour de début.",
+    };
+  }
+
+  await updateBudgetSettings({
+    monthlySalaryNet,
+    mealVoucherAmount,
+    monthlySavingsTarget,
+    paydayStartDay,
+    paydayEndDay,
+  });
 
   revalidatePath("/");
   revalidatePath("/budgets");

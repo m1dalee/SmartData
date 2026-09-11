@@ -56,6 +56,10 @@ export const userSettings = sqliteTable("user_settings", {
   mealVoucherAmount: real("meal_voucher_amount").notNull().default(160),
   /** Montant à mettre de côté chaque mois avant les dépenses. */
   monthlySavingsTarget: real("monthly_savings_target").notNull().default(1500),
+  /** Jour de début de la fenêtre de paye (ex. 3). */
+  paydayStartDay: integer("payday_start_day").notNull().default(3),
+  /** Jour de fin de la fenêtre de paye (ex. 5). */
+  paydayEndDay: integer("payday_end_day").notNull().default(5),
   updatedAt: text("updated_at").notNull(),
 });
 

@@ -5,6 +5,11 @@ import { getDb } from "@/lib/db";
 import { categories, transactions, userSettings } from "@/lib/db/schema";
 import { getMonthRange } from "@/lib/format";
 import {
+  formatPayCycleLabel,
+  getNextPaydayInfo,
+  getPayCycleRange,
+} from "@/lib/pay-cycle";
+import {
   countTransfers,
   filterRealTransactions,
   sumRealExpenses,
@@ -16,34 +21,37 @@ export const DEFAULT_BUDGET = {
   monthlySalaryNet: 1830,
   mealVoucherAmount: 160,
   monthlySavingsTarget: 1500,
+  paydayStartDay: 3,
+  paydayEndDay: 5,
 } as const;
 
 export type BudgetSettings = {
   monthlySalaryNet: number;
   mealVoucherAmount: number;
   monthlySavingsTarget: number;
+  paydayStartDay: number;
+  paydayEndDay: number;
 };
 
 export type MonthlyPlan = {
   month: string;
-  /** Salaire net configuré (ex. 1 830 €). */
+  payCycleStart: string;
+  payCycleEnd: string;
+  payCycleLabel: string;
+  paydayStartDay: number;
+  paydayEndDay: number;
+  daysUntilPayday: number;
+  nextPaydayLabel: string;
+  isPaydayWindow: boolean;
   monthlySalaryNet: number;
-  /** Tickets resto configurés (ex. 160 €). */
   mealVoucherAmount: number;
-  /** Total revenus prévus = salaire + tickets. */
   totalMonthlyIncome: number;
-  /** Objectif épargne réservé (ex. 1 500 €). */
   monthlySavingsTarget: number;
-  /** Enveloppe dépenses = revenus − épargne (ex. 490 €). */
   spendingEnvelope: number;
-  /** Dépenses réelles du mois (hors virements). */
   expenses: number;
-  /** Revenus réellement détectés dans les imports (info). */
   incomeFromBank: number;
   transfersExcluded: number;
-  /** Il reste X € avant la prochaine paye. */
   remainingBeforePayday: number;
-  /** Épargne réelle si on se base sur les entrées bancaires. */
   actualSavingsFromBank: number;
   isOverBudget: boolean;
 };
@@ -75,6 +83,8 @@ export async function ensureUserSettings() {
       monthlySalaryNet: DEFAULT_BUDGET.monthlySalaryNet,
       mealVoucherAmount: DEFAULT_BUDGET.mealVoucherAmount,
       monthlySavingsTarget: DEFAULT_BUDGET.monthlySavingsTarget,
+      paydayStartDay: DEFAULT_BUDGET.paydayStartDay,
+      paydayEndDay: DEFAULT_BUDGET.paydayEndDay,
       updatedAt: new Date().toISOString(),
     });
   }
@@ -88,6 +98,8 @@ export async function getBudgetSettings(): Promise<BudgetSettings> {
     monthlySalaryNet: settings?.monthlySalaryNet ?? DEFAULT_BUDGET.monthlySalaryNet,
     mealVoucherAmount: settings?.mealVoucherAmount ?? DEFAULT_BUDGET.mealVoucherAmount,
     monthlySavingsTarget: settings?.monthlySavingsTarget ?? DEFAULT_BUDGET.monthlySavingsTarget,
+    paydayStartDay: settings?.paydayStartDay ?? DEFAULT_BUDGET.paydayStartDay,
+    paydayEndDay: settings?.paydayEndDay ?? DEFAULT_BUDGET.paydayEndDay,
   };
 }
 
@@ -98,7 +110,12 @@ export async function updateBudgetSettings(settings: BudgetSettings): Promise<Bu
     monthlySalaryNet: Math.max(0, settings.monthlySalaryNet),
     mealVoucherAmount: Math.max(0, settings.mealVoucherAmount),
     monthlySavingsTarget: Math.max(0, settings.monthlySavingsTarget),
+    paydayStartDay: Math.min(28, Math.max(1, Math.round(settings.paydayStartDay))),
+    paydayEndDay: Math.min(28, Math.max(1, Math.round(settings.paydayEndDay))),
   };
+  if (safe.paydayEndDay < safe.paydayStartDay) {
+    safe.paydayEndDay = safe.paydayStartDay;
+  }
   await db.update(userSettings).set({
     ...safe,
     updatedAt: new Date().toISOString(),
@@ -106,28 +123,42 @@ export async function updateBudgetSettings(settings: BudgetSettings): Promise<Bu
   return safe;
 }
 
-/** @deprecated use updateBudgetSettings */
 export async function setMonthlySavingsTarget(amount: number): Promise<number> {
   const current = await getBudgetSettings();
   await updateBudgetSettings({ ...current, monthlySavingsTarget: amount });
   return amount;
 }
 
-export async function getMonthlyPlan(month: string): Promise<MonthlyPlan> {
-  const { start, end } = getMonthRange(month);
-  const all = await loadTransactionsWithCategories();
-  const monthTxs = all.filter((tx) => tx.date >= start && tx.date <= end);
-  const realMonthTxs = filterRealTransactions(monthTxs);
-
+/** Budget du cycle de paye en cours (pas le mois calendaire). */
+export async function getMonthlyPlan(referenceDate: Date = new Date()): Promise<MonthlyPlan> {
   const settings = await getBudgetSettings();
+  const payCycle = getPayCycleRange(referenceDate, settings.paydayStartDay);
+  const paydayInfo = getNextPaydayInfo(
+    referenceDate,
+    settings.paydayStartDay,
+    settings.paydayEndDay,
+  );
+
+  const all = await loadTransactionsWithCategories();
+  const cycleTxs = all.filter((tx) => tx.date >= payCycle.start && tx.date <= payCycle.end);
+  const realCycleTxs = filterRealTransactions(cycleTxs);
+
   const totalMonthlyIncome = settings.monthlySalaryNet + settings.mealVoucherAmount;
   const spendingEnvelope = totalMonthlyIncome - settings.monthlySavingsTarget;
-  const expenses = sumRealExpenses(realMonthTxs);
-  const incomeFromBank = sumRealIncome(realMonthTxs);
+  const expenses = sumRealExpenses(realCycleTxs);
+  const incomeFromBank = sumRealIncome(realCycleTxs);
   const remainingBeforePayday = spendingEnvelope - expenses;
 
   return {
-    month,
+    month: payCycle.cycleKey,
+    payCycleStart: payCycle.start,
+    payCycleEnd: payCycle.end,
+    payCycleLabel: formatPayCycleLabel(payCycle.start, payCycle.end),
+    paydayStartDay: settings.paydayStartDay,
+    paydayEndDay: settings.paydayEndDay,
+    daysUntilPayday: paydayInfo.daysUntilStart,
+    nextPaydayLabel: paydayInfo.label,
+    isPaydayWindow: paydayInfo.isPaydayWindow,
     monthlySalaryNet: settings.monthlySalaryNet,
     mealVoucherAmount: settings.mealVoucherAmount,
     totalMonthlyIncome,
@@ -135,14 +166,14 @@ export async function getMonthlyPlan(month: string): Promise<MonthlyPlan> {
     spendingEnvelope,
     expenses,
     incomeFromBank,
-    transfersExcluded: countTransfers(monthTxs),
+    transfersExcluded: countTransfers(cycleTxs),
     remainingBeforePayday,
     actualSavingsFromBank: incomeFromBank - expenses,
     isOverBudget: remainingBeforePayday < 0,
   };
 }
 
-/** Pour les graphiques : résumé mensuel hors virements. */
+/** Pour les graphiques : résumé mensuel calendaire hors virements. */
 export function summarizeRealMonth(
   transactions: TransactionWithCategory[],
   month: string,
