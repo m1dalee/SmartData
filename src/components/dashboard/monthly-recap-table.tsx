@@ -34,7 +34,7 @@ export function MonthlyRecapTable({ data }: { data: MonthlySummary[] }) {
                     <td className="py-3 pr-4 text-right text-emerald-600">{formatCurrency(row.income)}</td>
                     <td className="py-3 pr-4 text-right text-rose-600">{formatCurrency(row.expenses)}</td>
                     <td
-                      className={`py-3 pr-4 text-right font-medium ${row.savings >= 0 ? "text-indigo-600" : "text-rose-600"}`}
+                      className={`py-3 pr-4 text-right font-medium ${row.savings >= 0 ? "text-money-in" : "text-money-out"}`}
                     >
                       {formatCurrency(row.savings)}
                     </td>
