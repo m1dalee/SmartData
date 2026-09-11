@@ -7,27 +7,12 @@ export default async function ImportPage() {
   const { importedCount } = await getImportStats();
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen">
-      <AppNav currentPath="/import" />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Import banque</h1>
-          <p className="text-muted-foreground">
-            Importez un CSV : il reste en base jusqu&apos;au prochain fichier (qui remplace
-            l&apos;ancien)
-          </p>
-        </div>
-
-        <Card>
-=======
     <AppShell
       title="Import banque"
-      subtitle="Récupérez vos données via l'export CSV de votre espace client"
+      subtitle="Le CSV reste en base jusqu'au prochain fichier (qui remplace l'ancien)"
     >
       <div className="mx-auto max-w-3xl space-y-4">
         <Card className="rounded-2xl shadow-sm ring-1 ring-black/5">
->>>>>>> cursor/bankin-style-ui-c1de
           <CardHeader>
             <CardTitle>Importer un relevé CSV</CardTitle>
           </CardHeader>

@@ -47,8 +47,16 @@ export const categoryRules = sqliteTable("category_rules", {
   createdAt: text("created_at").notNull(),
 });
 
+/** Objectif d'épargne mensuel (une seule ligne de config). */
+export const userSettings = sqliteTable("user_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  monthlySavingsTarget: real("monthly_savings_target").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
 export type CategoryRule = typeof categoryRules.$inferSelect;
+export type UserSettings = typeof userSettings.$inferSelect;

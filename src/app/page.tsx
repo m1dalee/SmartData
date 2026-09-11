@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { BalanceHero } from "@/components/dashboard/balance-hero";
+import { MonthlyPlanCard } from "@/components/dashboard/monthly-plan-card";
 import { CashflowChart } from "@/components/dashboard/cashflow-chart";
 import { CategoryChart } from "@/components/dashboard/category-chart";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
@@ -37,6 +38,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       action={<MonthPicker month={stats.month} />}
     >
       <div className="space-y-4">
+        <MonthlyPlanCard {...stats.monthlyPlan} />
+
         <BalanceHero
           totalBalance={stats.totalBalance}
           income={stats.income}

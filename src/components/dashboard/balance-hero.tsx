@@ -38,7 +38,7 @@ export function BalanceHero({ totalBalance, income, expenses, savings, savingsRa
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-money-in">
             <ArrowUpRight className="h-4 w-4" />
           </span>
-          <span className="text-sm font-medium">Mes revenus</span>
+          <span className="text-sm font-medium">Mes revenus (hors virements)</span>
         </div>
         <p className="mt-3 text-2xl font-bold text-money-in">{formatCurrency(income)}</p>
         <div className="mt-1">
@@ -51,7 +51,7 @@ export function BalanceHero({ totalBalance, income, expenses, savings, savingsRa
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-money-out">
             <ArrowDownRight className="h-4 w-4" />
           </span>
-          <span className="text-sm font-medium">Mes dépenses</span>
+          <span className="text-sm font-medium">Mes dépenses (hors virements)</span>
         </div>
         <p className="mt-3 text-2xl font-bold text-money-out">{formatCurrency(expenses)}</p>
         <div className="mt-1">
