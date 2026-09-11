@@ -1,3 +1,8 @@
+import { isSavingsTransfer } from "@/lib/import/savings-transfer-detector";
+import {
+  detectSelfSavingsNames,
+  isSelfSavingsMovement,
+} from "@/lib/import/self-savings-detector";
 import { MONEY_MOVEMENT_CATEGORY, isMoneyMovement } from "@/lib/import/transfer-detector";
 
 export type TransactionWithCategory = {
@@ -8,28 +13,56 @@ export type TransactionWithCategory = {
   categoryName?: string | null;
 };
 
+export function getSelfSavingsNames(transactions: Pick<TransactionWithCategory, "label">[]): Set<string> {
+  return detectSelfSavingsNames(transactions);
+}
+
 /** Virement interne / mouvement entre comptes — exclu du suivi mensuel. */
-export function isTransferTransaction(tx: Pick<TransactionWithCategory, "label" | "categoryName">): boolean {
+export function isTransferTransaction(
+  tx: Pick<TransactionWithCategory, "label" | "categoryName">,
+  selfSavingsNames: Set<string> = new Set(),
+): boolean {
+  if (isSelfSavingsMovement(tx.label, selfSavingsNames)) {
+    return false;
+  }
+
   if (tx.categoryName === MONEY_MOVEMENT_CATEGORY) return true;
   return isMoneyMovement(tx.label);
 }
 
-export function filterRealTransactions<T extends TransactionWithCategory>(transactions: T[]): T[] {
-  return transactions.filter((tx) => !isTransferTransaction(tx));
+export function filterRealTransactions<T extends TransactionWithCategory>(
+  transactions: T[],
+  selfSavingsNames?: Set<string>,
+): T[] {
+  const names = selfSavingsNames ?? getSelfSavingsNames(transactions);
+  return transactions.filter((tx) => !isTransferTransaction(tx, names));
 }
 
-export function sumRealIncome(transactions: TransactionWithCategory[]): number {
-  return filterRealTransactions(transactions)
+export function sumRealIncome(
+  transactions: TransactionWithCategory[],
+  selfSavingsNames?: Set<string>,
+): number {
+  const names = selfSavingsNames ?? getSelfSavingsNames(transactions);
+  return filterRealTransactions(transactions, names)
     .filter((tx) => tx.type === "income")
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
-export function sumRealExpenses(transactions: TransactionWithCategory[]): number {
-  return filterRealTransactions(transactions)
+export function sumRealExpenses(
+  transactions: TransactionWithCategory[],
+  selfSavingsNames?: Set<string>,
+): number {
+  const names = selfSavingsNames ?? getSelfSavingsNames(transactions);
+  return filterRealTransactions(transactions, names)
     .filter((tx) => tx.type === "expense")
+    .filter((tx) => !isSavingsTransfer(tx.label, names))
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 }
 
-export function countTransfers(transactions: TransactionWithCategory[]): number {
-  return transactions.filter((tx) => isTransferTransaction(tx)).length;
+export function countTransfers(
+  transactions: TransactionWithCategory[],
+  selfSavingsNames?: Set<string>,
+): number {
+  const names = selfSavingsNames ?? getSelfSavingsNames(transactions);
+  return transactions.filter((tx) => isTransferTransaction(tx, names)).length;
 }

@@ -64,12 +64,14 @@ export function BalanceHero({ totalBalance, income, expenses, savings, savingsRa
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
             <PiggyBank className="h-4 w-4" />
           </span>
-          <span className="text-sm font-medium">Mon épargne</span>
+          <span className="text-sm font-medium">Épargne du mois</span>
         </div>
         <p className={`mt-3 text-2xl font-bold ${savings >= 0 ? "text-money-in" : "text-money-out"}`}>
           {formatCurrency(savings)}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">{savingsRate.toFixed(0)} % du revenu</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {savingsRate.toFixed(0)} % du revenu — voir objectif 30K pour le total Livret
+        </p>
       </article>
     </div>
   );

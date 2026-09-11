@@ -60,6 +60,8 @@ export const userSettings = sqliteTable("user_settings", {
   paydayStartDay: integer("payday_start_day").notNull().default(3),
   /** Jour de fin de la fenêtre de paye (ex. 5). */
   paydayEndDay: integer("payday_end_day").notNull().default(5),
+  /** Solde total épargne (Livret + LDD…) déclaré par l'utilisateur. */
+  totalSavingsBalance: real("total_savings_balance"),
   updatedAt: text("updated_at").notNull(),
 });
 

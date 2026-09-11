@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { setMainGoalTotalSavings } from "@/app/actions/main-goal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,32 +18,29 @@ export function MainGoalCard({
   startingAmount,
   periodSavings,
   monthlySavings,
+  savingsTransfersInPeriod,
+  livretDeposits,
+  livretWithdrawals,
+  livretNetInPeriod,
+  needsBaseline,
 }: MainGoalSnapshot) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
-  const [totalInput, setTotalInput] = useState(
-    currentAmount > 0 ? String(currentAmount) : monthlySavings > 0 ? String(monthlySavings) : "",
-  );
+  const [totalInput, setTotalInput] = useState(String(currentAmount > 0 ? currentAmount : 4000));
+
+  useEffect(() => {
+    if (needsBaseline && !editing) {
+      setEditing(true);
+    }
+  }, [needsBaseline, editing]);
 
   const displayAmount = Math.max(0, currentAmount);
   const clampedProgress = Math.min(100, Math.max(0, progress));
-  const needsSetup = displayAmount <= 0 && monthlySavings > 0;
 
   const handleSaveTotal = () => {
     const formData = new FormData();
     formData.set("totalSavings", totalInput);
-    startTransition(async () => {
-      await setMainGoalTotalSavings(formData);
-      setEditing(false);
-      router.refresh();
-    });
-  };
-
-  const applyMonthlyAsTotal = () => {
-    setTotalInput(String(monthlySavings));
-    const formData = new FormData();
-    formData.set("totalSavings", String(monthlySavings));
     startTransition(async () => {
       await setMainGoalTotalSavings(formData);
       setEditing(false);
@@ -68,7 +65,7 @@ export function MainGoalCard({
           </div>
           <div className="text-right">
             <p className="text-3xl font-extrabold text-money-in">{clampedProgress.toFixed(1)} %</p>
-            <p className="text-xs text-muted-foreground">Sync auto</p>
+            <p className="text-xs text-muted-foreground">Total épargne</p>
           </div>
         </div>
 
@@ -95,6 +92,25 @@ export function MainGoalCard({
           </div>
         </div>
 
+        {livretDeposits > 0 && (
+          <div className="rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-xs text-sky-950">
+            <p>
+              Virements Livret détectés :{" "}
+              <strong>{formatCurrency(livretDeposits)}</strong> vers ton Livret
+              {livretWithdrawals > 0 && (
+                <>
+                  , <strong>{formatCurrency(livretWithdrawals)}</strong> revenus
+                </>
+              )}
+              .
+            </p>
+            <p className="mt-1 text-sky-800">
+              Net période : {formatCurrency(livretNetInPeriod)} — le solde Livret (ex. 4 000 €) n&apos;est
+              pas dans le CSV, indique-le ci-dessous.
+            </p>
+          </div>
+        )}
+
         {remaining > 0 ? (
           <p className="text-sm text-muted-foreground">
             Plus que <strong className="text-foreground">{formatCurrency(remaining)}</strong> pour les 30K
@@ -104,52 +120,46 @@ export function MainGoalCard({
         )}
 
         <div className="space-y-2 rounded-xl border border-border/80 bg-background/60 p-3">
-          {needsSetup && !editing && (
+          {needsBaseline && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              <p>
-                Vous épargnez <strong>{formatCurrency(monthlySavings)}</strong> ce mois, mais l&apos;objectif
-                30K suit votre <strong>épargne totale</strong>.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 border-amber-300 bg-white"
-                onClick={applyMonthlyAsTotal}
-                disabled={pending}
-              >
-                J&apos;ai {formatCurrency(monthlySavings)} d&apos;épargne au total
-              </Button>
+              Ton Livret n&apos;apparaît pas dans le CSV du compte courant. Indique ton{" "}
+              <strong>solde épargne total</strong> (ex. 4 000 €) pour un suivi correct.
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground">
-            Indiquez combien vous avez épargné au total. L&apos;app ajuste automatiquement le point de départ
-            par rapport à vos imports bancaires.
-          </p>
-
           {editing ? (
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={totalInput}
-                onChange={(e) => setTotalInput(e.target.value)}
-                placeholder="Ex: 826"
-              />
-              <Button size="sm" onClick={handleSaveTotal} disabled={pending}>
-                OK
-              </Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Mon épargne totale (Livret + LDD…)</label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={totalInput}
+                  onChange={(e) => setTotalInput(e.target.value)}
+                  placeholder="Ex: 4000"
+                />
+                <Button size="sm" onClick={handleSaveTotal} disabled={pending}>
+                  Enregistrer
+                </Button>
+              </div>
             </div>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              Épargne totale : {formatCurrency(displayAmount)} — modifier
+              Mon épargne totale : {formatCurrency(displayAmount)} — corriger
             </Button>
           )}
 
           {startingAmount > 0 && (
             <p className="text-xs text-muted-foreground">
-              Ajustement interne : {formatCurrency(startingAmount)} avant le suivi importé
+              Dont {formatCurrency(startingAmount)} déjà épargnés avant le suivi CSV +{" "}
+              {formatCurrency(periodSavings)} calculés depuis l&apos;import
+            </p>
+          )}
+
+          {savingsTransfersInPeriod > 0 && livretDeposits === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Versements épargne détectés : {formatCurrency(savingsTransfersInPeriod)}
             </p>
           )}
         </div>

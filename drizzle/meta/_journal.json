@@ -43,6 +43,13 @@
       "when": 1789137500000,
       "tag": "0005_payday_window",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789138000000,
+      "tag": "0006_total_savings_balance",
+      "breakpoints": true
     }
   ]
 }
