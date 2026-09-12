@@ -12,7 +12,7 @@ export function TopExpenses({ expenses }: { expenses: TopExpense[] }) {
           <CardTitle>Plus grosses dépenses</CardTitle>
           <CardDescription>Top 5 du mois · cliquez pour classer</CardDescription>
         </div>
-        <Link href="/transactions" className="text-sm text-indigo-600 hover:underline">
+        <Link href="/transactions" className="text-sm font-semibold text-brand hover:underline">
           Tout voir
         </Link>
       </CardHeader>
@@ -24,7 +24,7 @@ export function TopExpenses({ expenses }: { expenses: TopExpense[] }) {
             <Link
               key={expense.id}
               href={`/transactions?id=${expense.id}`}
-              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/50"
+              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:border-brand/30 hover:bg-brand/5"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-sm font-bold text-rose-600">
                 {index + 1}
