@@ -1,38 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { FileUp } from "lucide-react";
 import { clearImportedTransactions, importBankCsv } from "@/app/actions/import";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatRelativeImportDate } from "@/lib/format";
 
-export function CsvImportForm({ importedCount }: { importedCount: number }) {
+type ImportStats = {
+  importedCount: number;
+  lastImportedAt: string | null;
+  latestTransactionDate: string | null;
+};
+
+export function CsvImportForm({
+  importedCount,
+  lastImportedAt,
+  latestTransactionDate,
+}: ImportStats) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"success" | "info" | "error">("success");
   const [pending, startTransition] = useTransition();
   const [clearPending, startClearTransition] = useTransition();
 
+  useEffect(() => {
+    if (searchParams.get("shared") === "1") {
+      setMessage(
+        searchParams.get("success") === "1"
+          ? "CSV reçu et importé depuis le partage."
+          : "Impossible d'importer le fichier partagé. Utilisez « Choisir mon CSV ».",
+      );
+      setMessageTone(searchParams.get("success") === "1" ? "success" : "error");
+    }
+  }, [searchParams]);
+
+  const submitImport = (form: HTMLFormElement) => {
+    const formData = new FormData(form);
+    startTransition(async () => {
+      const result = await importBankCsv(formData);
+      setMessage(result.message);
+      setMessageTone(result.alreadyImported ? "info" : result.success ? "success" : "error");
+      if (result.success && result.imported > 0) {
+        form.reset();
+        setSelectedFileName(null);
+      }
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-6">
       {importedCount > 0 ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
           <p>
-            <strong>{importedCount}</strong> transaction(s) bancaire(s) enregistrée(s) en base.
+            <strong>{importedCount}</strong> transaction(s) en base.
           </p>
-          <p className="mt-1 text-emerald-900/80">
-            Elles restent disponibles jusqu&apos;à ce que vous importiez un nouveau CSV (qui remplacera
-            l&apos;ancien).
-          </p>
-          <Link href="/transactions" className="mt-2 inline-block font-medium underline">
-            Voir l&apos;historique
+          {lastImportedAt && (
+            <p className="mt-1 text-emerald-900/80">
+              Dernier import : {formatRelativeImportDate(lastImportedAt)}
+              {latestTransactionDate ? ` · données jusqu'au ${latestTransactionDate}` : ""}
+            </p>
+          )}
+          <Link href="/" className="mt-2 inline-block font-medium underline">
+            Voir le tableau de bord
           </Link>
         </div>
       ) : (
-        <p className="rounded-md border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-          Aucun import en base pour l&apos;instant. Importez un CSV pour remplir le tableau de bord.
+        <p className="rounded-xl border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          Importez un CSV Crédit Agricole pour alimenter votre budget et votre objectif 30K.
         </p>
       )}
 
@@ -40,47 +81,63 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          const form = e.currentTarget;
-          const formData = new FormData(form);
-          startTransition(async () => {
-            const result = await importBankCsv(formData);
-            setMessage(result.message);
-            setMessageTone(
-              result.alreadyImported ? "info" : result.success ? "success" : "error",
-            );
-            if (result.success && result.imported > 0) {
-              form.reset();
-            }
-            router.refresh();
-          });
+          submitImport(e.currentTarget);
         }}
       >
-        <div className="space-y-2">
-          <Label htmlFor="file">Fichier CSV exporté par votre banque</Label>
-          <Input id="file" name="file" type="file" accept=".csv,text/csv" required />
-          <p className="text-sm text-muted-foreground">
-            Par défaut, ce fichier <strong>remplace</strong> l&apos;import précédent et reste en base
-            jusqu&apos;au prochain CSV.
+        <div className="space-y-3">
+          <Label htmlFor="file" className="text-base font-semibold">
+            Fichier CSV
+          </Label>
+
+          <input
+            ref={fileInputRef}
+            id="file"
+            name="file"
+            type="file"
+            accept=".csv,.CSV,text/csv,text/comma-separated-values"
+            required
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              setSelectedFileName(file?.name ?? null);
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand/30 bg-brand/5 px-4 py-8 text-center transition hover:border-brand/50 hover:bg-brand/10 active:scale-[0.99]"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-md">
+              <FileUp className="h-7 w-7" />
+            </span>
+            <span className="text-lg font-bold text-foreground">Choisir mon CSV</span>
+            <span className="text-sm text-muted-foreground">
+              {selectedFileName ?? "Depuis Fichiers, Mail ou Drive"}
+            </span>
+          </button>
+
+          <p className="text-xs text-muted-foreground">
+            Par défaut, le nouveau CSV <strong>remplace</strong> l&apos;ancien import.
           </p>
         </div>
 
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="keepExisting" className="mt-0.5 rounded border" />
+        <label className="flex items-start gap-3 rounded-xl border bg-muted/30 p-3 text-sm">
+          <input type="checkbox" name="keepExisting" className="mt-1 h-4 w-4 rounded border" />
           <span>
-            Ajouter sans remplacer
-            <span className="block text-muted-foreground">
-              Garde l&apos;ancien import et ajoute seulement les nouvelles lignes (dédoublonnage
-              automatique).
+            <strong>Ajouter sans remplacer</strong>
+            <span className="mt-0.5 block text-muted-foreground">
+              Idéal pour une mise à jour hebdo : seules les nouvelles lignes sont importées.
             </span>
           </span>
         </label>
 
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} size="lg" className="h-12 w-full text-base">
           {pending
             ? "Import en cours..."
             : importedCount > 0
-              ? "Mettre à jour avec ce CSV"
-              : "Importer les transactions"}
+              ? "Mettre à jour"
+              : "Importer"}
         </Button>
 
         {message && (
@@ -100,9 +157,6 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
 
       {importedCount > 0 && (
         <div className="border-t pt-4">
-          <p className="mb-2 text-sm text-muted-foreground">
-            Vider totalement la base d&apos;imports (sans importer de nouveau fichier) ?
-          </p>
           <Button
             type="button"
             variant="outline"
@@ -116,7 +170,7 @@ export function CsvImportForm({ importedCount }: { importedCount: number }) {
               })
             }
           >
-            {clearPending ? "Suppression..." : "Supprimer les imports bancaires"}
+            {clearPending ? "Suppression..." : "Supprimer les imports"}
           </Button>
         </div>
       )}

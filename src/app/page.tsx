@@ -13,7 +13,9 @@ import { StatusTiles } from "@/components/dashboard/status-tiles";
 import { TopExpenses } from "@/components/dashboard/top-expenses";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { getImportStats } from "@/app/actions/import";
 import { getCategories, getTransactions, getUncategorizedCount } from "@/app/actions/transactions";
+import { ImportReminderBanner } from "@/components/import/import-reminder-banner";
 import { getDashboardStats } from "@/lib/stats";
 import { syncMainGoalWithSavings } from "@/lib/savings-goal";
 import { formatCurrency, getCurrentMonth } from "@/lib/format";
@@ -26,6 +28,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const month = params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : getCurrentMonth();
   const stats = await getDashboardStats(month);
+  const importStats = await getImportStats();
   const mainGoal = await syncMainGoalWithSavings();
   const categories = await getCategories();
   const recentTransactions = await getTransactions(6);
@@ -38,6 +41,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       action={<MonthPicker month={stats.month} />}
     >
       <div className="space-y-4">
+        <ImportReminderBanner
+          importedCount={importStats.importedCount}
+          lastImportedAt={importStats.lastImportedAt}
+        />
+
         <MonthlyPlanCard {...stats.monthlyPlan} />
 
         <BalanceHero

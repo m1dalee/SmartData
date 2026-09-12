@@ -32,10 +32,19 @@ function revalidateImportPaths() {
 export async function getImportStats() {
   const db = getDb();
   const [result] = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({
+      count: sql<number>`count(*)`,
+      lastImportedAt: sql<string | null>`max(${transactions.createdAt})`,
+      latestTransactionDate: sql<string | null>`max(${transactions.date})`,
+    })
     .from(transactions)
     .where(eq(transactions.source, "import"));
-  return { importedCount: result?.count ?? 0 };
+
+  return {
+    importedCount: result?.count ?? 0,
+    lastImportedAt: result?.lastImportedAt ?? null,
+    latestTransactionDate: result?.latestTransactionDate ?? null,
+  };
 }
 
 export async function clearImportedTransactions() {

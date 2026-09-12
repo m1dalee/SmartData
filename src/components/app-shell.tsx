@@ -95,7 +95,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
         </header>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 px-2 py-2 backdrop-blur md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur md:hidden">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (

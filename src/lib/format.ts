@@ -36,6 +36,18 @@ export function shiftMonth(month: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+export function formatRelativeImportDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return "aujourd'hui";
+  if (diffDays === 1) return "hier";
+  if (diffDays < 7) return `il y a ${diffDays} jours`;
+  if (diffDays < 30) return `il y a ${Math.floor(diffDays / 7)} sem.`;
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
 export function formatPercent(value: number): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)} %`;

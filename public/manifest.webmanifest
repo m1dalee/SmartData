@@ -1,0 +1,39 @@
+{
+  "name": "SmartData — Finances perso",
+  "short_name": "SmartData",
+  "description": "Suivi budget, épargne 30K et import CSV bancaire",
+  "start_url": "/import",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c41e3a",
+  "lang": "fr",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/api/import-share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "file",
+          "accept": [".csv", "text/csv", "text/comma-separated-values"]
+        }
+      ]
+    }
+  }
+}
