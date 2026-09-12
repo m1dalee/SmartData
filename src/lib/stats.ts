@@ -1,9 +1,13 @@
 import "server-only";
 
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { budgets, categories, savingsGoals, transactions } from "@/lib/db/schema";
 import { calcDelta, getCurrentMonth, getMonthRange, shiftMonth } from "@/lib/format";
+import { computeBudgetExpenses } from "@/lib/expense-attribution";
+import { getBudgetSettings, getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
+import { MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
+import { filterRealTransactions, isTransferTransaction } from "@/lib/transaction-filters";
 import type {
   CategoryBreakdown,
   DashboardStats,
@@ -12,15 +16,24 @@ import type {
   TopExpense,
 } from "@/lib/types";
 
-function summarizeMonth(allTransactions: typeof transactions.$inferSelect[], month: string): MonthlySummary {
-  const range = getMonthRange(month);
-  const txs = allTransactions.filter((t) => t.date >= range.start && t.date <= range.end);
-  const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const expenses = txs.filter((t) => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
-  const savings = income - expenses;
-  const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+async function loadTransactionsWithCategories() {
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      type: transactions.type,
+      label: transactions.label,
+      date: transactions.date,
+      categoryName: categories.name,
+    })
+    .from(transactions)
+    .leftJoin(categories, eq(transactions.categoryId, categories.id));
 
-  return { month, income, expenses, savings, savingsRate };
+  return rows.map((row) => ({
+    ...row,
+    type: row.type as "expense" | "income",
+  }));
 }
 
 function buildInsights(
@@ -46,7 +59,7 @@ function buildInsights(
     insights.push({
       type: current.savingsRate >= 20 ? "positive" : current.savingsRate >= 10 ? "neutral" : "negative",
       title: "Taux d'épargne",
-      description: `${current.savingsRate.toFixed(0)} % de vos revenus épargnés ce mois-ci`,
+      description: `${current.savingsRate.toFixed(0)} % de vos revenus épargnés ce mois-ci (hors virements)`,
     });
   }
 
@@ -75,17 +88,26 @@ function buildInsights(
 export async function getDashboardStats(month = getCurrentMonth()): Promise<DashboardStats> {
   const db = getDb();
   const { start, end } = getMonthRange(month);
+  const budgetSettings = await getBudgetSettings();
 
+  const allWithCategories = await loadTransactionsWithCategories();
   const allTransactions = await db.select().from(transactions);
-  const monthTransactions = allTransactions.filter((t) => t.date >= start && t.date <= end);
+  const monthTransactions = allWithCategories.filter((t) => t.date >= start && t.date <= end);
+  const realMonthTransactions = filterRealTransactions(monthTransactions);
 
-  const income = monthTransactions
+  const income = realMonthTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const expenses = monthTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const effectiveExpenses = computeBudgetExpenses(
+    allWithCategories,
+    start,
+    end,
+    start,
+    end,
+    { manualCardSpending: budgetSettings.provisionalCardSpending },
+  );
+  const expenses = effectiveExpenses.total;
 
   const savings = income - expenses;
   const savingsRate = income > 0 ? (savings / income) * 100 : 0;
@@ -106,6 +128,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
         eq(transactions.type, "expense"),
         gte(transactions.date, start),
         lte(transactions.date, end),
+        ne(categories.name, MONEY_MOVEMENT_CATEGORY),
       ),
     )
     .groupBy(categories.id)
@@ -118,7 +141,15 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
 
   const last12Months: MonthlySummary[] = [];
   for (let i = 11; i >= 0; i--) {
-    last12Months.push(summarizeMonth(allTransactions, shiftMonth(month, -i)));
+    const targetMonth = shiftMonth(month, -i);
+    last12Months.push(
+      summarizeRealMonth(
+        allWithCategories,
+        targetMonth,
+        budgetSettings.provisionalCardSpending,
+        targetMonth === month,
+      ),
+    );
   }
 
   const monthsWithData = last12Months.filter((m) => m.income > 0 || m.expenses > 0);
@@ -130,7 +161,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
   };
 
   const prevMonth = shiftMonth(month, -1);
-  const prevSummary = summarizeMonth(allTransactions, prevMonth);
+  const prevSummary = summarizeRealMonth(allWithCategories, prevMonth, null, false);
   const hasPrevData = prevSummary.income > 0 || prevSummary.expenses > 0;
 
   const topExpenseRows = await db
@@ -152,12 +183,15 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
       ),
     )
     .orderBy(transactions.amount)
-    .limit(5);
+    .limit(20);
 
-  const topExpenses: TopExpense[] = topExpenseRows.map((row) => ({
-    ...row,
-    amount: Math.abs(row.amount),
-  }));
+  const topExpenses: TopExpense[] = topExpenseRows
+    .filter((row) => !isTransferTransaction({ label: row.label, categoryName: row.categoryName }))
+    .slice(0, 5)
+    .map((row) => ({
+      ...row,
+      amount: Math.abs(row.amount),
+    }));
 
   const goals = await db.select().from(savingsGoals);
   const monthBudgets = await db
@@ -167,6 +201,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     .where(eq(budgets.month, month));
 
   const currentSummary: MonthlySummary = { month, income, expenses, savings, savingsRate };
+  const monthlyPlan = await getMonthlyPlan();
 
   return {
     month,
@@ -189,5 +224,6 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     },
     goals,
     monthBudgets,
+    monthlyPlan,
   };
 }

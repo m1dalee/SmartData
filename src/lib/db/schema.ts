@@ -47,8 +47,29 @@ export const categoryRules = sqliteTable("category_rules", {
   createdAt: text("created_at").notNull(),
 });
 
+/** Budget mensuel personnel (une seule ligne de config). */
+export const userSettings = sqliteTable("user_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  /** Salaire net mensuel (virement principal). */
+  monthlySalaryNet: real("monthly_salary_net").notNull().default(1830),
+  /** Tickets restaurant mensuels. */
+  mealVoucherAmount: real("meal_voucher_amount").notNull().default(160),
+  /** Montant à mettre de côté chaque mois avant les dépenses. */
+  monthlySavingsTarget: real("monthly_savings_target").notNull().default(1500),
+  /** Jour de début de la fenêtre de paye (ex. 3). */
+  paydayStartDay: integer("payday_start_day").notNull().default(3),
+  /** Jour de fin de la fenêtre de paye (ex. 5). */
+  paydayEndDay: integer("payday_end_day").notNull().default(5),
+  /** Solde total épargne (Livret + LDD…) déclaré par l'utilisateur. */
+  totalSavingsBalance: real("total_savings_balance"),
+  /** Prévisionnel carte (app bancaire) quand le CSV n'a pas encore les achats CB. */
+  provisionalCardSpending: real("provisional_card_spending"),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
 export type SavingsGoal = typeof savingsGoals.$inferSelect;
 export type CategoryRule = typeof categoryRules.$inferSelect;
+export type UserSettings = typeof userSettings.$inferSelect;
