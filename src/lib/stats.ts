@@ -7,6 +7,7 @@ import { calcDelta, getCurrentMonth, getMonthRange, shiftMonth } from "@/lib/for
 import { computeBudgetExpenses } from "@/lib/expense-attribution";
 import { getBudgetSettings, getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
 import { computeMonthLivretDeposits } from "@/lib/savings-goal";
+import { MAIN_SAVINGS_GOAL } from "@/lib/savings-goal-constants";
 import { MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
 import {
   filterRealTransactions,
@@ -119,13 +120,28 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
   const savings = livretDeposits > 0 ? livretDeposits : cashLeftover;
   const savingsRate = income > 0 ? (savings / income) * 100 : 0;
 
-  const storedTotalSavings = budgetSettings.totalSavingsBalance ?? null;
   const names = getSelfSavingsNames(allWithCategories);
   const checkingNet = allWithCategories
     .filter((t) => !isTransferTransaction(t, names))
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalSavingsIsManual = storedTotalSavings !== null && storedTotalSavings > 0;
-  const totalBalance = totalSavingsIsManual ? storedTotalSavings : checkingNet;
+
+  const goals = await db.select().from(savingsGoals);
+  const mainGoal = goals.find((g) => g.name === MAIN_SAVINGS_GOAL.name);
+  const storedTotalSavings = budgetSettings.totalSavingsBalance;
+
+  let totalBalance: number;
+  let totalSavingsIsManual: boolean;
+
+  if (storedTotalSavings != null) {
+    totalBalance = Math.max(0, storedTotalSavings);
+    totalSavingsIsManual = true;
+  } else if (mainGoal && (mainGoal.startingAmount > 0 || mainGoal.currentAmount > 0)) {
+    totalBalance = Math.max(0, mainGoal.currentAmount);
+    totalSavingsIsManual = true;
+  } else {
+    totalBalance = Math.max(0, checkingNet);
+    totalSavingsIsManual = false;
+  }
 
   const categoryRows = await db
     .select({
@@ -207,7 +223,6 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
       amount: Math.abs(row.amount),
     }));
 
-  const goals = await db.select().from(savingsGoals);
   const monthBudgets = await db
     .select({ budget: budgets, category: categories })
     .from(budgets)

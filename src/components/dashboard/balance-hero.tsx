@@ -36,20 +36,14 @@ export function BalanceHero({
     <div className="animate-fade-up grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5 sm:col-span-2 xl:col-span-1">
         <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-brand/10 blur-2xl" />
-        <p className="text-sm font-medium text-muted-foreground">
-          {totalSavingsIsManual ? "Épargne totale" : "Flux net (CSV)"}
-        </p>
-        <p
-          className={`mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl ${
-            totalBalance >= 0 ? "text-money-in" : "text-money-out"
-          }`}
-        >
-          {formatCurrency(totalBalance)}
+        <p className="text-sm font-medium text-muted-foreground">Tous mes comptes</p>
+        <p className="mt-3 text-3xl font-extrabold tracking-tight text-money-in sm:text-4xl">
+          {formatCurrency(Math.max(0, totalBalance))}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
           {totalSavingsIsManual
-            ? "Montant indiqué (Livret…) — modifiable sur l'objectif 30K"
-            : "Somme des opérations hors virements — indique ton épargne sur l'objectif 30K"}
+            ? "Épargne totale (Livret…) — corrige sur l'objectif 30K si besoin"
+            : "Indique ton épargne (~4 200 €) sur l'objectif 30K pour remplacer ce calcul CSV"}
         </p>
       </article>
 
