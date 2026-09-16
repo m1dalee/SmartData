@@ -50,6 +50,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
         <BalanceHero
           totalBalance={stats.totalBalance}
+          totalSavingsIsManual={stats.totalSavingsIsManual}
           income={stats.income}
           expenses={stats.expenses}
           savings={stats.savings}

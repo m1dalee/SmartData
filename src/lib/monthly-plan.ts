@@ -32,6 +32,7 @@ export type BudgetSettings = {
   paydayStartDay: number;
   paydayEndDay: number;
   provisionalCardSpending: number | null;
+  totalSavingsBalance: number | null;
 };
 
 export type MonthlyPlan = {
@@ -103,12 +104,14 @@ export async function getBudgetSettings(): Promise<BudgetSettings> {
     paydayStartDay: settings?.paydayStartDay ?? DEFAULT_BUDGET.paydayStartDay,
     paydayEndDay: settings?.paydayEndDay ?? DEFAULT_BUDGET.paydayEndDay,
     provisionalCardSpending: settings?.provisionalCardSpending ?? null,
+    totalSavingsBalance: settings?.totalSavingsBalance ?? null,
   };
 }
 
 export async function updateBudgetSettings(settings: BudgetSettings): Promise<BudgetSettings> {
   await ensureUserSettings();
   const db = await getDb();
+  const [existing] = await db.select().from(userSettings).limit(1);
   const safe: BudgetSettings = {
     monthlySalaryNet: Math.max(0, settings.monthlySalaryNet),
     mealVoucherAmount: Math.max(0, settings.mealVoucherAmount),
@@ -119,6 +122,8 @@ export async function updateBudgetSettings(settings: BudgetSettings): Promise<Bu
       settings.provisionalCardSpending != null
         ? Math.max(0, settings.provisionalCardSpending)
         : null,
+    totalSavingsBalance:
+      settings.totalSavingsBalance ?? existing?.totalSavingsBalance ?? null,
   };
   if (safe.paydayEndDay < safe.paydayStartDay) {
     safe.paydayEndDay = safe.paydayStartDay;

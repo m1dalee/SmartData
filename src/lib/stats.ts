@@ -6,8 +6,13 @@ import { budgets, categories, savingsGoals, transactions } from "@/lib/db/schema
 import { calcDelta, getCurrentMonth, getMonthRange, shiftMonth } from "@/lib/format";
 import { computeBudgetExpenses } from "@/lib/expense-attribution";
 import { getBudgetSettings, getMonthlyPlan, summarizeRealMonth } from "@/lib/monthly-plan";
+import { computeMonthLivretDeposits } from "@/lib/savings-goal";
 import { MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
-import { filterRealTransactions, isTransferTransaction } from "@/lib/transaction-filters";
+import {
+  filterRealTransactions,
+  getSelfSavingsNames,
+  isTransferTransaction,
+} from "@/lib/transaction-filters";
 import type {
   CategoryBreakdown,
   DashboardStats,
@@ -109,9 +114,18 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
   );
   const expenses = effectiveExpenses.total;
 
-  const savings = income - expenses;
+  const livretDeposits = computeMonthLivretDeposits(allWithCategories, month);
+  const cashLeftover = income - expenses;
+  const savings = livretDeposits > 0 ? livretDeposits : cashLeftover;
   const savingsRate = income > 0 ? (savings / income) * 100 : 0;
-  const totalBalance = allTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  const storedTotalSavings = budgetSettings.totalSavingsBalance ?? null;
+  const names = getSelfSavingsNames(allWithCategories);
+  const checkingNet = allWithCategories
+    .filter((t) => !isTransferTransaction(t, names))
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalSavingsIsManual = storedTotalSavings !== null && storedTotalSavings > 0;
+  const totalBalance = totalSavingsIsManual ? storedTotalSavings : checkingNet;
 
   const categoryRows = await db
     .select({
@@ -210,6 +224,7 @@ export async function getDashboardStats(month = getCurrentMonth()): Promise<Dash
     savings,
     savingsRate,
     totalBalance,
+    totalSavingsIsManual,
     transactionCount: monthTransactions.length,
     categoryBreakdown,
     last12Months,

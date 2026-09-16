@@ -1,7 +1,9 @@
 import { isSavingsTransfer } from "@/lib/import/savings-transfer-detector";
 import {
   detectSelfSavingsNames,
+  isSelfSavingsIncoming,
   isSelfSavingsMovement,
+  isSelfSavingsOutgoing,
 } from "@/lib/import/self-savings-detector";
 import { MONEY_MOVEMENT_CATEGORY, isMoneyMovement } from "@/lib/import/transfer-detector";
 
@@ -22,8 +24,12 @@ export function isTransferTransaction(
   tx: Pick<TransactionWithCategory, "label" | "categoryName">,
   selfSavingsNames: Set<string> = new Set(),
 ): boolean {
-  if (isSelfSavingsMovement(tx.label, selfSavingsNames)) {
-    return false;
+  if (
+    isSelfSavingsMovement(tx.label, selfSavingsNames) ||
+    isSelfSavingsOutgoing(tx.label, selfSavingsNames) ||
+    isSelfSavingsIncoming(tx.label, selfSavingsNames)
+  ) {
+    return true;
   }
 
   if (tx.categoryName === MONEY_MOVEMENT_CATEGORY) return true;

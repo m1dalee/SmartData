@@ -40,6 +40,7 @@ export type DashboardStats = {
   savings: number;
   savingsRate: number;
   totalBalance: number;
+  totalSavingsIsManual: boolean;
   transactionCount: number;
   categoryBreakdown: CategoryBreakdown[];
   last12Months: MonthlySummary[];

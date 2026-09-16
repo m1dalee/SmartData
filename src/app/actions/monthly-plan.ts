@@ -53,7 +53,9 @@ export async function updateMonthlyBudgetSettings(formData: FormData) {
     return { success: false, message: "Prévisionnel carte invalide." };
   }
 
+  const current = await getBudgetSettings();
   await updateBudgetSettings({
+    ...current,
     monthlySalaryNet,
     mealVoucherAmount,
     monthlySavingsTarget,

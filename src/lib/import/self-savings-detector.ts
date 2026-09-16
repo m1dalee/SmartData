@@ -54,7 +54,10 @@ export function detectSelfSavingsNames(transactions: { label?: string | null }[]
     if (inName) incoming.add(inName);
   }
 
-  return new Set([...outgoing].filter((name) => incoming.has(name)));
+  const paired = new Set([...outgoing].filter((name) => incoming.has(name)));
+  if (paired.size > 0) return paired;
+  // Compte courant seul dans le CSV : les virements WEB vers le Livret suffisent.
+  return outgoing;
 }
 
 export function isSelfSavingsOutgoing(label: string, names: Set<string>): boolean {

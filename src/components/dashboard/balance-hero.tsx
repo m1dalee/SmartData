@@ -4,7 +4,13 @@ import type { DashboardStats } from "@/lib/types";
 
 type Props = Pick<
   DashboardStats,
-  "totalBalance" | "income" | "expenses" | "savings" | "savingsRate" | "comparison"
+  | "totalBalance"
+  | "totalSavingsIsManual"
+  | "income"
+  | "expenses"
+  | "savings"
+  | "savingsRate"
+  | "comparison"
 >;
 
 function Delta({ value, invert }: { value: number; invert?: boolean }) {
@@ -17,12 +23,22 @@ function Delta({ value, invert }: { value: number; invert?: boolean }) {
   );
 }
 
-export function BalanceHero({ totalBalance, income, expenses, savings, savingsRate, comparison }: Props) {
+export function BalanceHero({
+  totalBalance,
+  totalSavingsIsManual,
+  income,
+  expenses,
+  savings,
+  savingsRate,
+  comparison,
+}: Props) {
   return (
     <div className="animate-fade-up grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5 sm:col-span-2 xl:col-span-1">
         <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-brand/10 blur-2xl" />
-        <p className="text-sm font-medium text-muted-foreground">Tous mes comptes</p>
+        <p className="text-sm font-medium text-muted-foreground">
+          {totalSavingsIsManual ? "Épargne totale" : "Flux net (CSV)"}
+        </p>
         <p
           className={`mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl ${
             totalBalance >= 0 ? "text-money-in" : "text-money-out"
@@ -30,7 +46,11 @@ export function BalanceHero({ totalBalance, income, expenses, savings, savingsRa
         >
           {formatCurrency(totalBalance)}
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">Solde cumulé de vos opérations</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {totalSavingsIsManual
+            ? "Montant indiqué (Livret…) — modifiable sur l'objectif 30K"
+            : "Somme des opérations hors virements — indique ton épargne sur l'objectif 30K"}
+        </p>
       </article>
 
       <article className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
@@ -70,7 +90,7 @@ export function BalanceHero({ totalBalance, income, expenses, savings, savingsRa
           {formatCurrency(savings)}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {savingsRate.toFixed(0)} % du revenu — voir objectif 30K pour le total Livret
+          Virements vers Livret ce mois (sinon reste compte courant) · objectif ~1 500 €
         </p>
       </article>
     </div>

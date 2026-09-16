@@ -82,6 +82,17 @@ export function computeMonthlySavings(
   return computeSavingsFromTransactions(txs);
 }
 
+/** Épargne réelle du mois : virements vers Livret détectés (Crédit Agricole WEB). */
+export function computeMonthLivretDeposits(
+  allTransactions: SavingsTransaction[],
+  month: string,
+): number {
+  const selfSavingsNames = buildSelfSavingsNamesFromTransactions(allTransactions);
+  const { start, end } = getMonthRange(month);
+  const monthTxs = allTransactions.filter((t) => t.date && t.date >= start && t.date <= end);
+  return sumSelfSavingsMovements(monthTxs, selfSavingsNames).deposits;
+}
+
 export async function ensureMainSavingsGoal() {
   const db = await getDb();
   const existing = await db
