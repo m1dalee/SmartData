@@ -8,7 +8,7 @@ import { getCurrentMonth } from "@/lib/format";
 import { syncMainGoalWithSavings } from "@/lib/savings-goal";
 
 export async function createSavingsGoal(formData: FormData) {
-  const db = getDb();
+  const db = await getDb();
   const name = String(formData.get("name")).trim();
   const targetAmount = Number.parseFloat(String(formData.get("targetAmount")));
   const currentAmount = Number.parseFloat(String(formData.get("currentAmount") || "0"));
@@ -31,14 +31,14 @@ export async function createSavingsGoal(formData: FormData) {
 }
 
 export async function updateSavingsGoalProgress(id: number, currentAmount: number) {
-  const db = getDb();
+  const db = await getDb();
   await db.update(savingsGoals).set({ currentAmount }).where(eq(savingsGoals.id, id));
   revalidatePath("/");
   revalidatePath("/budgets");
 }
 
 export async function createBudget(formData: FormData) {
-  const db = getDb();
+  const db = await getDb();
   const categoryId = Number.parseInt(String(formData.get("categoryId")), 10);
   const amount = Number.parseFloat(String(formData.get("amount")));
   const month = String(formData.get("month") || getCurrentMonth());
@@ -54,11 +54,11 @@ export async function createBudget(formData: FormData) {
 
 export async function getSavingsGoals() {
   await syncMainGoalWithSavings();
-  const db = getDb();
+  const db = await getDb();
   return db.select().from(savingsGoals);
 }
 
 export async function getBudgets(month = getCurrentMonth()) {
-  const db = getDb();
+  const db = await getDb();
   return db.select().from(budgets).where(eq(budgets.month, month));
 }

@@ -29,8 +29,15 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 ## Stack
 
 - Next.js 16 + TypeScript
-- SQLite (Drizzle ORM)
+- SQLite (Drizzle ORM) — local `data/` ; **Turso** en production Vercel
 - shadcn/ui + Recharts
+
+## Déploiement Vercel
+
+1. Projet lié au repo GitHub (`main` = branche de production).
+2. **Base persistante (iPhone / cloud)** : ajoutez [Turso](https://turso.tech) via le marketplace Vercel (`vercel integration add turso`) ou créez une base sur [turso.tech](https://turso.tech), puis définissez `TURSO_DATABASE_URL` et `TURSO_AUTH_TOKEN` dans les variables d'environnement du projet.
+3. Sans Turso, Vercel utilise un SQLite éphémère dans `/tmp` (données perdues entre cold starts — démo uniquement).
+4. Sur iPhone : ouvrir l’URL de prod dans Safari → **Partager → Sur l’écran d’accueil** (PWA).
 
 ## Cursor Cloud (mobile)
 

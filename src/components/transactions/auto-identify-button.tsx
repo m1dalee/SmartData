@@ -16,12 +16,12 @@ export function AutoIdentifyButton({ unknownCount }: { unknownCount: number }) {
   const [details, setDetails] = useState<string[]>([]);
 
   return (
-    <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+    <div className="space-y-3 rounded-2xl border border-brand/20 bg-brand/5 p-4 shadow-sm">
       <div>
-        <p className="font-medium text-indigo-900">
+        <p className="font-medium text-foreground">
           {unknownCount} paiement{unknownCount > 1 ? "s" : ""} non identifié{unknownCount > 1 ? "s" : ""}
         </p>
-        <p className="text-sm text-indigo-700/80">
+        <p className="text-sm text-muted-foreground">
           Sources : libellé bancaire → Wikipedia → Bing (DuckDuckGo en secours)
         </p>
       </div>
@@ -59,7 +59,7 @@ export function AutoIdentifyButton({ unknownCount }: { unknownCount: number }) {
         </Button>
       </div>
 
-      {message && <p className="text-sm text-indigo-800">{message}</p>}
+      {message && <p className="text-sm text-foreground">{message}</p>}
       {details.length > 0 && (
         <ul className="max-h-40 overflow-y-auto rounded-lg bg-background/80 p-2 text-xs text-muted-foreground">
           {details.map((line, i) => (

@@ -9,7 +9,7 @@ import { isFallbackCategory, lookupPaymentCategory, delay, PROVIDER_LABELS } fro
 import { isMoneyMovement, MONEY_MOVEMENT_CATEGORY } from "@/lib/import/transfer-detector";
 
 async function getCategoryByName(name: string) {
-  const db = getDb();
+  const db = await getDb();
   const [cat] = await db.select().from(categories).where(eq(categories.name, name)).limit(1);
   return cat ?? null;
 }
@@ -20,7 +20,7 @@ async function applyCategoryToTransaction(
   keyword: string,
   saveRule: boolean,
 ) {
-  const db = getDb();
+  const db = await getDb();
   await db.update(transactions).set({ categoryId }).where(eq(transactions.id, transactionId));
 
   if (saveRule && keyword.trim()) {
@@ -29,7 +29,7 @@ async function applyCategoryToTransaction(
 }
 
 export async function identifySingleTransaction(transactionId: number) {
-  const db = getDb();
+  const db = await getDb();
   const [tx] = await db.select().from(transactions).where(eq(transactions.id, transactionId)).limit(1);
   if (!tx) return { success: false, message: "Transaction introuvable." };
 
@@ -67,7 +67,7 @@ export async function identifySingleTransaction(transactionId: number) {
 }
 
 export async function identifyUnknownPayments(batchSize = 15) {
-  const db = getDb();
+  const db = await getDb();
   const allCategories = await db.select().from(categories);
   const fallbackIds = allCategories
     .filter((c) => isFallbackCategory(c.name))
@@ -130,7 +130,7 @@ export async function identifyUnknownPayments(batchSize = 15) {
 }
 
 export async function recategorizeMoneyMovements() {
-  const db = getDb();
+  const db = await getDb();
   const cat = await getCategoryByName(MONEY_MOVEMENT_CATEGORY);
   if (!cat) return { updated: 0, message: "Catégorie introuvable." };
 
@@ -151,7 +151,7 @@ export async function recategorizeMoneyMovements() {
 }
 
 export async function getUnknownPaymentCount() {
-  const db = getDb();
+  const db = await getDb();
   const allCategories = await db.select().from(categories);
   const fallbackIds = new Set(
     allCategories.filter((c) => isFallbackCategory(c.name)).map((c) => c.id),

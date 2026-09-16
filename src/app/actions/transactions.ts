@@ -20,12 +20,12 @@ export type TransactionRow = {
 };
 
 export async function getCategories() {
-  const db = getDb();
+  const db = await getDb();
   return db.select().from(categories).orderBy(categories.name);
 }
 
 export async function getTransactions(limit = 500): Promise<TransactionRow[]> {
-  const db = getDb();
+  const db = await getDb();
   return db
     .select({
       transaction: {
@@ -50,7 +50,7 @@ export async function getTransactions(limit = 500): Promise<TransactionRow[]> {
 }
 
 export async function getUncategorizedCount() {
-  const db = getDb();
+  const db = await getDb();
   const [result] = await db
     .select({ count: sql<number>`count(*)` })
     .from(transactions)
@@ -59,7 +59,7 @@ export async function getUncategorizedCount() {
 }
 
 export async function createTransaction(formData: FormData) {
-  const db = getDb();
+  const db = await getDb();
   const date = String(formData.get("date"));
   const label = String(formData.get("label")).trim();
   const rawAmount = Number.parseFloat(String(formData.get("amount")));
@@ -87,7 +87,7 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function updateTransactionCategory(transactionId: number, categoryId: number) {
-  const db = getDb();
+  const db = await getDb();
   await db.update(transactions).set({ categoryId }).where(eq(transactions.id, transactionId));
   revalidatePath("/");
   revalidatePath("/transactions");
@@ -95,7 +95,7 @@ export async function updateTransactionCategory(transactionId: number, categoryI
 }
 
 export async function countSimilarTransactions(keyword: string) {
-  const db = getDb();
+  const db = await getDb();
   const all = await db.select({ id: transactions.id, label: transactions.label }).from(transactions);
   return all.filter((t) => labelMatchesKeyword(t.label, keyword)).length;
 }
@@ -105,7 +105,7 @@ export async function categorizeSimilarPayments(
   categoryId: number,
   saveRule = true,
 ) {
-  const db = getDb();
+  const db = await getDb();
   const all = await db.select().from(transactions);
   const matching = all.filter((t) => labelMatchesKeyword(t.label, keyword));
 
@@ -142,7 +142,7 @@ export async function categorizeSimilarPayments(
 }
 
 export async function deleteTransaction(id: number) {
-  const db = getDb();
+  const db = await getDb();
   await db.delete(transactions).where(eq(transactions.id, id));
   revalidatePath("/");
   revalidatePath("/transactions");
