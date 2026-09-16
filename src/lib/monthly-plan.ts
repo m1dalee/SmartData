@@ -59,7 +59,7 @@ export type MonthlyPlan = {
 };
 
 async function loadTransactionsWithCategories(): Promise<TransactionWithCategory[]> {
-  const db = getDb();
+  const db = await getDb();
   const rows = await db
     .select({
       amount: transactions.amount,
@@ -78,7 +78,7 @@ async function loadTransactionsWithCategories(): Promise<TransactionWithCategory
 }
 
 export async function ensureUserSettings() {
-  const db = getDb();
+  const db = await getDb();
   const existing = await db.select().from(userSettings).limit(1);
   if (existing.length === 0) {
     await db.insert(userSettings).values({
@@ -94,7 +94,7 @@ export async function ensureUserSettings() {
 
 export async function getBudgetSettings(): Promise<BudgetSettings> {
   await ensureUserSettings();
-  const db = getDb();
+  const db = await getDb();
   const [settings] = await db.select().from(userSettings).limit(1);
   return {
     monthlySalaryNet: settings?.monthlySalaryNet ?? DEFAULT_BUDGET.monthlySalaryNet,
@@ -108,7 +108,7 @@ export async function getBudgetSettings(): Promise<BudgetSettings> {
 
 export async function updateBudgetSettings(settings: BudgetSettings): Promise<BudgetSettings> {
   await ensureUserSettings();
-  const db = getDb();
+  const db = await getDb();
   const safe: BudgetSettings = {
     monthlySalaryNet: Math.max(0, settings.monthlySalaryNet),
     mealVoucherAmount: Math.max(0, settings.mealVoucherAmount),

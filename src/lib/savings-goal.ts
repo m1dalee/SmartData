@@ -83,7 +83,7 @@ export function computeMonthlySavings(
 }
 
 export async function ensureMainSavingsGoal() {
-  const db = getDb();
+  const db = await getDb();
   const existing = await db
     .select()
     .from(savingsGoals)
@@ -117,7 +117,7 @@ export type MainGoalSnapshot = {
 };
 
 async function loadTransactionsForSavings() {
-  const db = getDb();
+  const db = await getDb();
   const rows = await db
     .select({
       amount: transactions.amount,
@@ -152,7 +152,7 @@ function sumSavingsTransfers(allTransactions: SavingsTransaction[]): number {
 }
 
 async function getStoredTotalSavings(): Promise<number | null> {
-  const db = getDb();
+  const db = await getDb();
   const [settings] = await db.select().from(userSettings).limit(1);
   return settings?.totalSavingsBalance ?? null;
 }
@@ -160,7 +160,7 @@ async function getStoredTotalSavings(): Promise<number | null> {
 export async function syncMainGoalWithSavings(): Promise<MainGoalSnapshot> {
   await ensureMainSavingsGoal();
 
-  const db = getDb();
+  const db = await getDb();
   const [goal] = await db
     .select()
     .from(savingsGoals)
@@ -223,7 +223,7 @@ export async function syncMainGoalWithSavings(): Promise<MainGoalSnapshot> {
 
 export async function updateMainGoalStartingAmount(startingAmount: number) {
   await ensureMainSavingsGoal();
-  const db = getDb();
+  const db = await getDb();
   await db
     .update(savingsGoals)
     .set({ startingAmount: Math.max(0, startingAmount) })
@@ -236,7 +236,7 @@ export async function updateMainGoalStartingAmount(startingAmount: number) {
 export async function updateMainGoalTotalSavings(totalSavings: number) {
   await ensureMainSavingsGoal();
 
-  const db = getDb();
+  const db = await getDb();
   const allTransactions = await loadTransactionsForSavings();
   const periodSavings = computeSavingsFromTransactions(allTransactions);
   const startingAmount = Math.max(0, totalSavings - periodSavings);

@@ -17,7 +17,7 @@ import type {
 } from "@/lib/types";
 
 async function loadTransactionsWithCategories() {
-  const db = getDb();
+  const db = await getDb();
   const rows = await db
     .select({
       id: transactions.id,
@@ -86,7 +86,7 @@ function buildInsights(
 }
 
 export async function getDashboardStats(month = getCurrentMonth()): Promise<DashboardStats> {
-  const db = getDb();
+  const db = await getDb();
   const { start, end } = getMonthRange(month);
   const budgetSettings = await getBudgetSettings();
 

@@ -30,7 +30,7 @@ function revalidateImportPaths() {
 }
 
 export async function getImportStats() {
-  const db = getDb();
+  const db = await getDb();
   const [result] = await db
     .select({
       count: sql<number>`count(*)`,
@@ -48,7 +48,7 @@ export async function getImportStats() {
 }
 
 export async function clearImportedTransactions() {
-  const db = getDb();
+  const db = await getDb();
   const deleted = await db.delete(transactions).where(eq(transactions.source, "import"));
   checkpointDatabase();
   revalidateImportPaths();
@@ -56,7 +56,7 @@ export async function clearImportedTransactions() {
   return {
     success: true,
     message: "Imports bancaires supprimés. La base est vide — importez un nouveau CSV pour recommencer.",
-    deletedCount: deleted.changes ?? 0,
+    deletedCount: "changes" in deleted ? (deleted.changes ?? 0) : 0,
   };
 }
 
@@ -83,7 +83,7 @@ export async function importBankCsv(formData: FormData) {
     return { success: false, imported: 0, skipped: 0, message: "Aucune transaction détectée." };
   }
 
-  const db = getDb();
+  const db = await getDb();
 
   if (replaceExisting) {
     await db.delete(transactions).where(eq(transactions.source, "import"));
