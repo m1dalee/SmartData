@@ -199,8 +199,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
           </div>
         )}
 
-        {(cardSpending.isProvisional || cardSpending.cardSettled > 0) && (
-          <div className="rounded-xl border border-white/25 bg-white/10 p-4 backdrop-blur-sm">
+        <div className="rounded-xl border border-white/25 bg-white/10 p-4 backdrop-blur-sm">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-sm font-semibold">Paiement différé carte</p>
               {!editingCard && (
@@ -210,7 +209,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
                   onClick={() => setEditingCard(true)}
                   className="bg-white/20 text-brand-foreground hover:bg-white/30"
                 >
-                  Prévisionnel
+                  En cours carte
                 </Button>
               )}
             </div>
@@ -250,7 +249,6 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
               </p>
             )}
           </div>
-        )}
 
         <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
           <div className="mb-3 flex items-center justify-between gap-2">
