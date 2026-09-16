@@ -1,6 +1,14 @@
+import { isTursoConfigured } from "./config";
 import { initLocalDatabase, checkpointLocalDatabase } from "./local-sqlite";
-import { initTursoDatabase, isTursoConfigured } from "./turso";
+import { initTursoDatabase } from "./turso";
 import type { SmartDataDb } from "./types";
+
+export {
+  getDatabaseMode,
+  getTursoEnv,
+  isEphemeralServerlessDatabase,
+  isTursoConfigured,
+} from "./config";
 
 let dbPromise: Promise<SmartDataDb> | null = null;
 

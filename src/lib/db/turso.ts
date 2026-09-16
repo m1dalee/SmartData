@@ -4,21 +4,19 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import path from "path";
 import * as schema from "./schema";
 import { seedDefaultCategories } from "./seed-categories";
+import { getTursoEnv } from "./config";
 import type { SmartDataDb } from "./types";
 
 let dbInstance: SmartDataDb | null = null;
 
-export function isTursoConfigured() {
-  return Boolean(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
-}
-
 export async function initTursoDatabase(): Promise<SmartDataDb> {
   if (dbInstance) return dbInstance;
 
-  const url = process.env.TURSO_DATABASE_URL;
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+  const { url, authToken } = getTursoEnv();
   if (!url || !authToken) {
-    throw new Error("TURSO_DATABASE_URL et TURSO_AUTH_TOKEN sont requis pour la base distante.");
+    throw new Error(
+      "Base Turso non configurée (TURSO_DATABASE_URL + TURSO_AUTH_TOKEN ou LIBSQL_URL + LIBSQL_AUTH_TOKEN).",
+    );
   }
 
   const client = createClient({ url, authToken });
