@@ -40,3 +40,4 @@ Application Next.js de finances personnelles (import CSV bancaire, dashboard, bu
 - La base SQLite est recréée dans `data/` ; les imports CSV se font via la page `/import`
 - Ne pas committer `data/` ni `.env*`
 - Après des changements de schéma : `npm run db:generate` puis vérifier les migrations dans `drizzle/`
+- **Persistance prod** : ne pas réinstaller l'intégration Turso sans garder la même `TURSO_DATABASE_URL`. L'import est refusé sans Turso sur Vercel. Diagnostic : `/api/health/db` (`databaseHost`, `dataLossSuspected`).

@@ -64,6 +64,11 @@ export const userSettings = sqliteTable("user_settings", {
   totalSavingsBalance: real("total_savings_balance"),
   /** Prévisionnel carte (app bancaire) quand le CSV n'a pas encore les achats CB. */
   provisionalCardSpending: real("provisional_card_spending"),
+  /** Host Turso utilisé lors du dernier import réussi (détection changement d'URL Vercel). */
+  tursoDatabaseHost: text("turso_database_host"),
+  /** Nombre de lignes importées lors du dernier import réussi. */
+  lastImportTransactionCount: integer("last_import_transaction_count"),
+  lastImportCompletedAt: text("last_import_completed_at"),
   updatedAt: text("updated_at").notNull(),
 });
 

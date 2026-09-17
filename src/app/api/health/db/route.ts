@@ -7,6 +7,7 @@ import {
   isEphemeralServerlessDatabase,
   isTursoConfigured,
 } from "@/lib/db";
+import { getImportPersistenceStatus } from "@/lib/db/import-persistence";
 import { transactions, userSettings } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export async function GET() {
       })
       .from(transactions);
     const [settings] = await db.select().from(userSettings).limit(1);
+    const persistence = await getImportPersistenceStatus(db);
 
     return NextResponse.json({
       ok: true,
@@ -33,6 +35,10 @@ export async function GET() {
       hasUserSettings: Boolean(settings),
       totalSavingsBalance: settings?.totalSavingsBalance ?? null,
       databaseHost: isTursoConfigured() ? getTursoDatabaseHost() : null,
+      lastRecordedImportCount: persistence.lastRecordedImportCount,
+      recordedDatabaseHost: persistence.recordedDatabaseHost,
+      databaseHostMismatch: persistence.databaseHostMismatch,
+      dataLossSuspected: persistence.dataLossSuspected,
       hint: isEphemeralServerlessDatabase()
         ? "Pas de Turso : chaque redémarrage serveur peut effacer la base /tmp. Ajoute l'intégration Turso sur Vercel et redeploie."
         : isTursoConfigured()

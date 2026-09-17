@@ -57,6 +57,13 @@
       "when": 1789138500000,
       "tag": "0007_provisional_card_spending",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789639000000,
+      "tag": "0008_import_persistence_meta",
+      "breakpoints": true
     }
   ]
 }

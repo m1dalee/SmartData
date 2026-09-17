@@ -14,7 +14,9 @@ import { TopExpenses } from "@/components/dashboard/top-expenses";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getImportStats } from "@/app/actions/import";
-import { getDatabaseMode, getTursoDatabaseHost, isTursoConfigured } from "@/lib/db";
+import { getDb, getDatabaseMode, getTursoDatabaseHost, isTursoConfigured } from "@/lib/db";
+import { getImportPersistenceStatus } from "@/lib/db/import-persistence";
+import { PersistenceAlertBanner } from "@/components/import/persistence-alert-banner";
 import { getCategories, getTransactions, getUncategorizedCount } from "@/app/actions/transactions";
 import { ImportReminderBanner } from "@/components/import/import-reminder-banner";
 import { getDashboardStats } from "@/lib/stats";
@@ -32,6 +34,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const importStats = await getImportStats();
   const tursoConnected = isTursoConfigured() && getDatabaseMode() === "turso";
   const databaseHost = tursoConnected ? getTursoDatabaseHost() : null;
+  const db = await getDb();
+  const persistence = await getImportPersistenceStatus(db);
   const mainGoal = await syncMainGoalWithSavings();
   const categories = await getCategories();
   const recentTransactions = await getTransactions(6);
@@ -44,6 +48,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       action={<MonthPicker month={stats.month} />}
     >
       <div className="space-y-4">
+        <PersistenceAlertBanner {...persistence} />
+
         <ImportReminderBanner
           importedCount={importStats.importedCount}
           lastImportedAt={importStats.lastImportedAt}
