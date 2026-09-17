@@ -82,7 +82,7 @@ export function BalanceHero({
           {formatCurrency(savings)}
         </p>
         {savingsRate > 0 ? (
-          <p className="mt-1 text-xs text-muted-foreground">{formatPercent(savingsRate)} du revenu</p>
+          <p className="mt-1 text-xs text-muted-foreground">{savingsRate.toFixed(0)} % du revenu</p>
         ) : null}
       </article>
     </div>
