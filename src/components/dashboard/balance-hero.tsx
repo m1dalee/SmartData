@@ -34,17 +34,15 @@ export function BalanceHero({
 }: Props) {
   return (
     <div className="animate-fade-up grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <article className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5 sm:col-span-2 xl:col-span-1">
-        <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-brand/10 blur-2xl" />
-        <p className="text-sm font-medium text-muted-foreground">Tous mes comptes</p>
-        <p className="mt-3 text-3xl font-extrabold tracking-tight text-money-in sm:text-4xl">
+      <article className="relative overflow-hidden rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border/80 sm:col-span-2 xl:col-span-1">
+        <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-brand/8 blur-2xl" />
+        <p className="text-sm font-medium text-muted-foreground">Épargne totale</p>
+        <p className="mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
           {formatCurrency(Math.max(0, totalBalance))}
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {totalSavingsIsManual
-            ? "Épargne totale (Livret…) — corrige sur l'objectif 30K si besoin"
-            : "Indique ton épargne (~4 200 €) sur l'objectif 30K pour remplacer ce calcul CSV"}
-        </p>
+        {!totalSavingsIsManual ? (
+          <p className="mt-2 text-xs text-muted-foreground">À renseigner sur l&apos;objectif 30K</p>
+        ) : null}
       </article>
 
       <article className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/5">
@@ -52,7 +50,7 @@ export function BalanceHero({
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-money-in">
             <ArrowUpRight className="h-4 w-4" />
           </span>
-          <span className="text-sm font-medium">Mes revenus (hors virements)</span>
+          <span className="text-sm font-medium">Revenus</span>
         </div>
         <p className="mt-3 text-2xl font-bold text-money-in">{formatCurrency(income)}</p>
         <div className="mt-1">
@@ -65,7 +63,7 @@ export function BalanceHero({
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-money-out">
             <ArrowDownRight className="h-4 w-4" />
           </span>
-          <span className="text-sm font-medium">Mes dépenses (hors virements)</span>
+          <span className="text-sm font-medium">Dépenses</span>
         </div>
         <p className="mt-3 text-2xl font-bold text-money-out">{formatCurrency(expenses)}</p>
         <div className="mt-1">
@@ -83,9 +81,9 @@ export function BalanceHero({
         <p className={`mt-3 text-2xl font-bold ${savings >= 0 ? "text-money-in" : "text-money-out"}`}>
           {formatCurrency(savings)}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Virements vers Livret ce mois (sinon reste compte courant) · objectif ~1 500 €
-        </p>
+        {savingsRate > 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">{formatPercent(savingsRate)} du revenu</p>
+        ) : null}
       </article>
     </div>
   );

@@ -2,7 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowDownRight, CalendarClock, PiggyBank, Wallet } from "lucide-react";
+import {
+  ChevronDown,
+  CreditCard,
+  PiggyBank,
+  Settings2,
+  Wallet,
+} from "lucide-react";
 import {
   updateMonthlyBudgetSettings,
   updateProvisionalCardSpending,
@@ -16,7 +22,8 @@ import type { MonthlyPlan } from "@/lib/monthly-plan";
 export function MonthlyPlanCard(plan: MonthlyPlan) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [editing, setEditing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState(false);
   const [salaryInput, setSalaryInput] = useState(String(plan.monthlySalaryNet));
   const [voucherInput, setVoucherInput] = useState(String(plan.mealVoucherAmount));
   const [savingsInput, setSavingsInput] = useState(String(plan.monthlySavingsTarget));
@@ -25,17 +32,30 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
   const [cardInput, setCardInput] = useState(
     String(plan.cardSpending.cardManualOverride ?? (plan.cardSpending.cardProvisional || "")),
   );
-  const [editingCard, setEditingCard] = useState(false);
 
   const { cardSpending } = plan;
-
-  const remainingPositive = plan.remainingBeforePayday >= 0;
+  const remaining = plan.remainingBeforePayday;
+  const remainingPositive = remaining >= 0;
   const spentPercent =
     plan.spendingEnvelope > 0
       ? Math.min(100, (plan.expenses / plan.spendingEnvelope) * 100)
       : 0;
 
-  const handleSave = () => {
+  const cardAmount =
+    cardSpending.cardManualOverride ??
+    (cardSpending.cardSettled > 0
+      ? cardSpending.cardSettled
+      : cardSpending.cardProvisional > 0
+        ? cardSpending.cardProvisional
+        : null);
+
+  const paydayHint = plan.isPaydayWindow
+    ? "Fenêtre de paye"
+    : plan.daysUntilPayday === 0
+      ? `Paye : ${plan.nextPaydayLabel}`
+      : `Paye dans ${plan.daysUntilPayday} j · ${plan.nextPaydayLabel}`;
+
+  const handleSaveSettings = () => {
     const formData = new FormData();
     formData.set("monthlySalaryNet", salaryInput);
     formData.set("mealVoucherAmount", voucherInput);
@@ -45,7 +65,7 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
     formData.set("provisionalCardSpending", cardInput);
     startTransition(async () => {
       const result = await updateMonthlyBudgetSettings(formData);
-      if (result.success) setEditing(false);
+      if (result.success) setSettingsOpen(false);
       router.refresh();
     });
   };
@@ -60,212 +80,130 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
     });
   };
 
-  const cardLabel = cardSpending.cardSettled
-    ? `Carte prélevée (${formatCurrency(cardSpending.cardSettled)})`
-    : cardSpending.isProvisional
-      ? cardSpending.cardManualOverride != null
-        ? "Carte (prévisionnel saisi)"
-        : cardSpending.cardProvisional > 0
-          ? "Carte (achats CSV)"
-          : "Carte (estimation)"
-      : null;
-
   return (
-    <article className="animate-fade-up relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand to-[oklch(0.48_0.2_25)] p-6 text-brand-foreground shadow-lg shadow-brand/25">
-      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-
-      <div className="relative space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-foreground/70">
-              Cycle de paye · {plan.payCycleLabel}
-            </p>
-            <h2 className="text-2xl font-extrabold tracking-tight">Mon budget du mois</h2>
-            <p className="text-xs text-brand-foreground/75">
-              {plan.isPaydayWindow
-                ? "Fenêtre de paye en cours"
-                : plan.daysUntilPayday === 0
-                  ? `Prochaine paye : ${plan.nextPaydayLabel}`
-                  : `Prochaine paye dans ${plan.daysUntilPayday} jour${plan.daysUntilPayday > 1 ? "s" : ""} (${plan.nextPaydayLabel})`}
-            </p>
-            <p className="text-sm leading-relaxed text-brand-foreground/90">
-              Sur vos <strong>{formatCurrency(plan.monthlySalaryNet)}</strong> de salaire net
-              {plan.mealVoucherAmount > 0 && (
-                <>
-                  {" "}
-                  (+ <strong>{formatCurrency(plan.mealVoucherAmount)}</strong> tickets resto)
-                </>
-              )}
-              , vous avez dépensé <strong>{formatCurrency(plan.expenses)}</strong> ce cycle
-              {cardSpending.isProvisional && (
-                <>
-                  {" "}
-                  (<strong>dont carte provisoire</strong>)
-                </>
-              )}
-              .
-              <br />
-              <strong>{formatCurrency(plan.monthlySavingsTarget)}</strong> sont réservés pour
-              l&apos;épargne.
-            </p>
-            {cardLabel && (
-              <p className="text-xs text-brand-foreground/75">
-                Paiement différé : {cardLabel}
-                {cardSpending.cardSettled === 0 && cardSpending.lastCardSettlement > 0 && (
-                  <> · prélèvement précédent {formatCurrency(cardSpending.lastCardSettlement)}</>
-                )}
-              </p>
-            )}
-            {plan.transfersExcluded > 0 && (
-              <p className="text-xs text-brand-foreground/70">
-                {plan.transfersExcluded} virement{plan.transfersExcluded > 1 ? "s" : ""} exclu
-                {plan.transfersExcluded > 1 ? "s" : ""} du calcul
-              </p>
-            )}
-          </div>
-
-          <div className="shrink-0 rounded-xl bg-white/15 px-5 py-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-brand-foreground/90">
-              <CalendarClock className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                {remainingPositive ? "Il vous reste" : "Dépassement de"}
-              </span>
-            </div>
-            <p className="mt-1 text-4xl font-extrabold tracking-tight">
-              {formatCurrency(Math.abs(plan.remainingBeforePayday))}
-            </p>
-            <p className="mt-1 text-xs text-brand-foreground/80">
-              {remainingPositive
-                ? "avant la prochaine paye"
-                : "par rapport à votre enveloppe du mois"}
-            </p>
-          </div>
+    <article className="animate-fade-up overflow-hidden rounded-2xl bg-surface-hero text-surface-hero-foreground shadow-xl shadow-[oklch(0.21_0.045_275/0.35)] ring-1 ring-white/10">
+      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-surface-hero-foreground/65">
+            Budget · {plan.payCycleLabel}
+          </p>
+          <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-medium">
+            {paydayHint}
+          </span>
         </div>
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-brand-foreground/85">
-              <Wallet className="h-4 w-4" />
-              <span className="text-xs font-medium">Salaire net</span>
-            </div>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.monthlySalaryNet)}</p>
-          </div>
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-brand-foreground/85">
-              <PiggyBank className="h-4 w-4" />
-              <span className="text-xs font-medium">Épargne réservée</span>
-            </div>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.monthlySavingsTarget)}</p>
-          </div>
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-brand-foreground/85">
-              <ArrowDownRight className="h-4 w-4" />
-              <span className="text-xs font-medium">Dépensé ce mois</span>
-            </div>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.expenses)}</p>
-            {cardSpending.other > 0 && (
-              <p className="mt-1 text-[11px] text-brand-foreground/70">
-                prélèvements {formatCurrency(cardSpending.other)} + carte{" "}
-                {formatCurrency(
-                  cardSpending.cardSettled > 0
-                    ? cardSpending.cardSettled
-                    : (cardSpending.cardManualOverride ?? cardSpending.cardProvisional),
-                )}
-              </p>
-            )}
-          </div>
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur-sm">
-            <p className="text-xs font-medium text-brand-foreground/85">Enveloppe du mois</p>
-            <p className="mt-2 text-xl font-bold">{formatCurrency(plan.spendingEnvelope)}</p>
-            <p className="mt-1 text-[11px] text-brand-foreground/70">
-              après épargne ({formatCurrency(plan.totalMonthlyIncome)} −{" "}
-              {formatCurrency(plan.monthlySavingsTarget)})
+      <div className="space-y-6 px-5 py-6 sm:px-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-surface-hero-foreground/80">
+              {remainingPositive ? "Reste à vivre avant la paye" : "Dépassement"}
+            </p>
+            <p className="mt-1 text-5xl font-extrabold tracking-tight sm:text-6xl">
+              {formatCurrency(Math.abs(remaining))}
             </p>
           </div>
-        </div>
-
-        {plan.spendingEnvelope > 0 && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-brand-foreground/80">
-              <span>Dépensé {spentPercent.toFixed(0)} % de l&apos;enveloppe</span>
-              <span>
-                {formatCurrency(plan.expenses)} / {formatCurrency(plan.spendingEnvelope)}
-              </span>
+          <div className="w-full sm:max-w-xs">
+            <div className="mb-2 flex justify-between text-xs text-surface-hero-foreground/70">
+              <span>Enveloppe consommée</span>
+              <span>{spentPercent.toFixed(0)} %</span>
             </div>
             <Progress
               value={spentPercent}
-              className={`h-2.5 bg-white/20 ${plan.isOverBudget ? "[&>div]:bg-rose-300" : "[&>div]:bg-amber-200"}`}
+              className={`h-2.5 bg-white/12 ${plan.isOverBudget ? "[&>div]:bg-money-out" : "[&>div]:bg-[oklch(0.72_0.12_285)]"}`}
             />
-          </div>
-        )}
-
-        <div className="rounded-xl border border-white/25 bg-white/10 p-4 backdrop-blur-sm">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold">Paiement différé carte</p>
-              {!editingCard && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setEditingCard(true)}
-                  className="bg-white/20 text-brand-foreground hover:bg-white/30"
-                >
-                  En cours carte
-                </Button>
-              )}
-            </div>
-            <p className="text-xs leading-relaxed text-brand-foreground/85">
-              Le Crédit Agricole prélève tes achats CB vers le 30 du mois. Copie uniquement le
-              montant &laquo;&nbsp;prévisionnel carte&nbsp;&raquo; de ton app — il remplace
-              l&apos;estimation, sans double comptage avec les prélèvements SEPA.
+            <p className="mt-2 text-right text-xs text-surface-hero-foreground/65">
+              {formatCurrency(plan.expenses)} / {formatCurrency(plan.spendingEnvelope)}
             </p>
-            {editingCard ? (
-              <div className="mt-3 flex gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={cardInput}
-                  onChange={(e) => setCardInput(e.target.value)}
-                  placeholder="Ex: 430"
-                  className="border-white/30 bg-white/90 text-foreground"
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSaveCard}
-                  disabled={pending}
-                  className="bg-white text-brand hover:bg-white/90"
-                >
-                  OK
-                </Button>
-              </div>
-            ) : (
-              <p className="mt-2 text-sm font-medium">
-                Prévisionnel carte :{" "}
-                {cardSpending.cardManualOverride != null
-                  ? formatCurrency(cardSpending.cardManualOverride)
-                  : cardSpending.cardProvisional > 0
-                    ? `${formatCurrency(cardSpending.cardProvisional)} (CSV)`
-                    : "non renseigné — mets ton prévisionnel CA"}
-              </p>
-            )}
           </div>
+        </div>
 
-        <div className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">Mes revenus & objectif épargne</p>
-            {!editing && (
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-xl border border-white/8 bg-white/6 p-3 text-center">
+            <Wallet className="mx-auto h-4 w-4 text-surface-hero-foreground/75" />
+            <p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-surface-hero-foreground/55">
+              À vivre
+            </p>
+            <p className="mt-0.5 text-base font-bold sm:text-lg">
+              {formatCurrency(plan.spendingEnvelope)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/6 p-3 text-center">
+            <PiggyBank className="mx-auto h-4 w-4 text-surface-hero-foreground/75" />
+            <p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-surface-hero-foreground/55">
+              Épargne
+            </p>
+            <p className="mt-0.5 text-base font-bold sm:text-lg">
+              {formatCurrency(plan.monthlySavingsTarget)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/6 p-3 text-center">
+            <CreditCard className="mx-auto h-4 w-4 text-surface-hero-foreground/75" />
+            <p className="mt-2 text-[10px] font-medium uppercase tracking-wide text-surface-hero-foreground/55">
+              Carte CB
+            </p>
+            <p className="mt-0.5 text-base font-bold sm:text-lg">
+              {cardAmount != null ? formatCurrency(cardAmount) : "—"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {editingCard ? (
+            <div className="flex flex-1 gap-2">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={cardInput}
+                onChange={(e) => setCardInput(e.target.value)}
+                placeholder="Prévisionnel app CA"
+                className="border-white/30 bg-white/95 text-foreground"
+              />
               <Button
                 size="sm"
-                variant="secondary"
-                onClick={() => setEditing(true)}
-                className="bg-white/20 text-brand-foreground hover:bg-white/30"
+                onClick={handleSaveCard}
+                disabled={pending}
+                className="shrink-0 bg-white text-surface-hero hover:bg-white/90"
               >
-                Modifier
+                OK
               </Button>
-            )}
-          </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingCard(false)}
+                className="text-surface-hero-foreground hover:bg-white/10"
+              >
+                Annuler
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setEditingCard(true)}
+              className="w-full border border-white/15 bg-white/10 text-surface-hero-foreground hover:bg-white/15 sm:w-auto"
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              {cardAmount != null ? "Modifier en cours carte" : "Saisir en cours carte"}
+            </Button>
+          )}
 
-          {editing ? (
+          <button
+            type="button"
+            onClick={() => setSettingsOpen((o) => !o)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-surface-hero-foreground/90 transition hover:bg-white/10"
+          >
+            <Settings2 className="h-4 w-4" />
+            Réglages salaire & paye
+            <ChevronDown
+              className={`h-4 w-4 transition ${settingsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+
+        {settingsOpen && (
+          <div className="rounded-xl border border-white/20 bg-black/10 p-4 backdrop-blur-sm">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="space-y-1 text-xs">
                 <span>Salaire net (€)</span>
@@ -322,48 +260,27 @@ export function MonthlyPlanCard(plan: MonthlyPlan) {
                   className="border-white/30 bg-white/90 text-foreground"
                 />
               </label>
-              <label className="space-y-1 text-xs sm:col-span-2">
-                <span>Prévisionnel carte CB (€)</span>
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={cardInput}
-                  onChange={(e) => setCardInput(e.target.value)}
-                  placeholder="Montant app CA"
-                  className="border-white/30 bg-white/90 text-foreground"
-                />
-              </label>
-              <div className="flex gap-2 sm:col-span-2 lg:col-span-3">
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={pending}
-                  className="bg-white text-brand hover:bg-white/90"
-                >
-                  {pending ? "Enregistrement..." : "Enregistrer"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditing(false)}
-                  className="text-brand-foreground hover:bg-white/10"
-                >
-                  Annuler
-                </Button>
-              </div>
             </div>
-          ) : (
-            <p className="text-sm text-brand-foreground/85">
-              Paye entre le <strong>{plan.paydayStartDay}</strong> et le{" "}
-              <strong>{plan.paydayEndDay}</strong> de chaque mois ·{" "}
-              {formatCurrency(plan.monthlySalaryNet)} salaire +{" "}
-              {formatCurrency(plan.mealVoucherAmount)} tickets −{" "}
-              {formatCurrency(plan.monthlySavingsTarget)} épargne ={" "}
-              <strong>{formatCurrency(plan.spendingEnvelope)}</strong> pour vivre sur le cycle en cours.
-            </p>
-          )}
-        </div>
+            <div className="mt-4 flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleSaveSettings}
+                disabled={pending}
+                className="bg-white text-surface-hero hover:bg-white/90"
+              >
+                {pending ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSettingsOpen(false)}
+                className="text-surface-hero-foreground hover:bg-white/10"
+              >
+                Fermer
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
