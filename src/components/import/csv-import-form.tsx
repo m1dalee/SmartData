@@ -161,14 +161,21 @@ export function CsvImportForm({
             type="button"
             variant="outline"
             disabled={clearPending}
-            onClick={() =>
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Supprimer toutes les transactions importées ? Cette action est définitive sur Turso.",
+                )
+              ) {
+                return;
+              }
               startClearTransition(async () => {
                 const result = await clearImportedTransactions();
                 setMessage(result.message);
                 setMessageTone("info");
                 router.refresh();
-              })
-            }
+              });
+            }}
           >
             {clearPending ? "Suppression..." : "Supprimer les imports"}
           </Button>
