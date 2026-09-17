@@ -9,11 +9,11 @@ export function MonthPicker({ month }: { month: string }) {
   const next = shiftMonth(month, 1);
 
   return (
-    <div className="flex items-center gap-1 rounded-full bg-white/15 p-1 text-brand-foreground backdrop-blur-sm">
+    <div className="flex items-center gap-1 rounded-full border border-border bg-muted/60 p-1 text-foreground">
       <Link
         href={`/?month=${prev}`}
         aria-label="Mois précédent"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/20"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-background"
       >
         <ChevronLeft className="h-4 w-4" />
       </Link>
@@ -23,7 +23,7 @@ export function MonthPicker({ month }: { month: string }) {
       <Link
         href={`/?month=${next}`}
         aria-label="Mois suivant"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/20"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-background"
       >
         <ChevronRight className="h-4 w-4" />
       </Link>

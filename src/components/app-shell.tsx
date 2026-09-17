@@ -38,7 +38,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
           className="flex h-16 items-center justify-center border-b border-sidebar-border"
           aria-label="SmartData"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-extrabold tracking-tight text-brand-foreground shadow-sm shadow-brand/30 transition-transform duration-300 hover:scale-105">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[oklch(0.42_0.12_275)] to-[oklch(0.52_0.14_285)] text-lg font-extrabold tracking-tight text-white shadow-sm shadow-indigo-900/20 transition-transform duration-300 hover:scale-105">
             S
           </span>
         </Link>
@@ -68,16 +68,15 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Red page header */}
-        <header className="sticky top-0 z-30 bg-brand text-brand-foreground shadow-md shadow-brand/20">
+        <header className="sticky top-0 z-30 border-b border-border/80 bg-card/90 text-foreground backdrop-blur-md supports-[backdrop-filter]:bg-card/75">
           <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-foreground/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 SmartData
               </p>
               <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
               {subtitle ? (
-                <p className="mt-0.5 truncate text-sm text-brand-foreground/80">{subtitle}</p>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">{subtitle}</p>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -85,7 +84,7 @@ export function AppShell({ title, subtitle, action, children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-brand-foreground transition hover:bg-white/20"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted/50 text-foreground transition hover:bg-muted"
                 aria-label="Actualiser"
               >
                 <RefreshCw className="h-4 w-4" />

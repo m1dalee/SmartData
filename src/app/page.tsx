@@ -58,8 +58,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           comparison={stats.comparison}
         />
 
-        <StatusTiles insights={stats.insights} uncategorizedCount={uncategorizedCount} />
-
         <div className="grid gap-4 lg:grid-cols-2">
           <CategoryChart
             data={stats.categoryBreakdown}
@@ -70,6 +68,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </div>
 
         <CashflowChart data={stats.last12Months} />
+
+        <StatusTiles insights={stats.insights} uncategorizedCount={uncategorizedCount} />
 
         <div className="grid gap-4 lg:grid-cols-2">
           <MainGoalCard {...mainGoal} />
