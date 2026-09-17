@@ -5,6 +5,7 @@ import type { SmartDataDb } from "./types";
 
 export {
   getDatabaseMode,
+  getTursoDatabaseHost,
   getTursoEnv,
   isEphemeralServerlessDatabase,
   isTursoConfigured,

@@ -14,6 +14,7 @@ import { TopExpenses } from "@/components/dashboard/top-expenses";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getImportStats } from "@/app/actions/import";
+import { getDatabaseMode, getTursoDatabaseHost, isTursoConfigured } from "@/lib/db";
 import { getCategories, getTransactions, getUncategorizedCount } from "@/app/actions/transactions";
 import { ImportReminderBanner } from "@/components/import/import-reminder-banner";
 import { getDashboardStats } from "@/lib/stats";
@@ -29,6 +30,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const month = params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : getCurrentMonth();
   const stats = await getDashboardStats(month);
   const importStats = await getImportStats();
+  const tursoConnected = isTursoConfigured() && getDatabaseMode() === "turso";
+  const databaseHost = tursoConnected ? getTursoDatabaseHost() : null;
   const mainGoal = await syncMainGoalWithSavings();
   const categories = await getCategories();
   const recentTransactions = await getTransactions(6);
@@ -44,6 +47,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <ImportReminderBanner
           importedCount={importStats.importedCount}
           lastImportedAt={importStats.lastImportedAt}
+          tursoConnected={tursoConnected}
+          databaseHost={databaseHost}
         />
 
         <MonthlyPlanCard {...stats.monthlyPlan} />

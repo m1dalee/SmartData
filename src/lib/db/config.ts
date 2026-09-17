@@ -24,3 +24,12 @@ export function getDatabaseMode(): "turso" | "local" {
 export function isEphemeralServerlessDatabase() {
   return process.env.VERCEL === "1" && !isTursoConfigured();
 }
+
+/** Host Turso affiché dans /api/health/db (sans secrets). */
+export function getTursoDatabaseHost(): string | null {
+  const { url } = getTursoEnv();
+  if (!url) return null;
+  const withoutScheme = url.replace(/^libsql:\/\//, "").replace(/^https:\/\//, "");
+  const host = withoutScheme.split(/[/?#]/)[0]?.trim();
+  return host || null;
+}
