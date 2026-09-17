@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   getDatabaseMode,
   getDb,
+  getTursoDatabaseHost,
   isEphemeralServerlessDatabase,
   isTursoConfigured,
 } from "@/lib/db";
@@ -31,6 +32,7 @@ export async function GET() {
       importedTransactionCount: Number(txStats?.imported ?? 0),
       hasUserSettings: Boolean(settings),
       totalSavingsBalance: settings?.totalSavingsBalance ?? null,
+      databaseHost: isTursoConfigured() ? getTursoDatabaseHost() : null,
       hint: isEphemeralServerlessDatabase()
         ? "Pas de Turso : chaque redémarrage serveur peut effacer la base /tmp. Ajoute l'intégration Turso sur Vercel et redeploie."
         : isTursoConfigured()

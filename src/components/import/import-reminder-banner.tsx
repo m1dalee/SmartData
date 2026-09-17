@@ -6,9 +6,17 @@ import { formatRelativeImportDate } from "@/lib/format";
 type Props = {
   importedCount: number;
   lastImportedAt: string | null;
+  /** Turso connecté mais table vide — l’app lit bien la base */
+  tursoConnected?: boolean;
+  databaseHost?: string | null;
 };
 
-export function ImportReminderBanner({ importedCount, lastImportedAt }: Props) {
+export function ImportReminderBanner({
+  importedCount,
+  lastImportedAt,
+  tursoConnected = false,
+  databaseHost,
+}: Props) {
   const needsImport = importedCount === 0;
   const stale =
     !needsImport &&
@@ -24,9 +32,20 @@ export function ImportReminderBanner({ importedCount, lastImportedAt }: Props) {
         <div className="text-sm">
           {needsImport ? (
             <>
-              <p className="font-semibold">Importez votre CSV pour démarrer</p>
+              <p className="font-semibold">
+                {tursoConnected ? "Base connectée, mais vide" : "Importez votre CSV pour démarrer"}
+              </p>
               <p className="mt-0.5 text-amber-900/80">
-                Export Crédit Agricole → Fichiers → import ici (1 min).
+                {tursoConnected ? (
+                  <>
+                    L&apos;app interroge Turso ({databaseHost ?? "base configurée"}) —{" "}
+                    <strong>0 transaction</strong> pour l&apos;instant. Réimportez votre CSV (1 min).
+                    Si vous aviez déjà importé, vérifiez dans Vercel/Turso que l&apos;URL pointe vers
+                    la bonne base.
+                  </>
+                ) : (
+                  <>Export Crédit Agricole → Fichiers → import ici (1 min).</>
+                )}
               </p>
             </>
           ) : (
